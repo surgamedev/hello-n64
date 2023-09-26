@@ -33,7 +33,6 @@
  * ifdef needed because this file is included by "spec"
  */
 #ifdef _LANGUAGE_C
-
 /*
  * Layout of dynamic data.
  *
@@ -42,15 +41,6 @@
  * data cache lines to DRAM prior to processing by the RCP.
  *
  */
-typedef struct {
-	Mtx	projection;
-	Mtx	modeling;
-	Mtx	viewing;
-        Mtx     identity;
-	Gfx	glist[GLIST_LEN];
-} Dynamic;
-
-extern Dynamic	dynamic;
 
 /* these are the static display lists */
 

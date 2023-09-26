@@ -39,4 +39,5 @@ RUN dpkg --add-architecture i386 && \
     apt-get -y install vadpcm-tools && \
     apt-get -y install n64-conv-tools && \
     apt-get -y install rsp-tools && \
+    apt-get -y install spicy && \
     apt-get -y install root-compatibility-environment

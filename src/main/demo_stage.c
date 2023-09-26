@@ -31,7 +31,7 @@
 #include <assert.h>
 
 #include "demo_stage.h"
-
+#include "entity.h"
 /*
  * Symbol genererated by "makerom" to indicate the end of the code segment
  * in virtual (and physical) memory
@@ -77,6 +77,12 @@ OSIoMesg	dmaIOMessageBuf;	/* see man page to understand this */
 /*
  * Dynamic data.
  */
+typedef struct {
+	Mtx	projection;
+	Transform world;
+	Gfx	glist[GLIST_LEN];
+} Dynamic;
+
 Dynamic dynamic;
 
 /*
@@ -107,12 +113,42 @@ Gfx		*glistp;	/* global for test case procs */
 /*
  * global variables
  */
-static float	theta = 0.0;
 static int	rdp_flag = 0;	/* 0:xbus , 1:fifo */
 static int	do_texture = 0;
 static int      draw_buffer = 0;
 
 OSPiHandle	*handler;
+
+Entity entities[2] = {
+	{ 
+		.position = {100.0f, 0.0f, 0.0f},
+		.rotation = {0.0f, 0.0f, -5.0f},
+		.scale = {25.0f, 25.0f, 1.0f}
+	},
+	{ 
+		.position = {0.0f, 0.0f, 0.0f},
+		.rotation = {0.0f, 0.0f, 10.0f},
+		.scale = {32.f, 25.0f, 1.0f}
+	}
+};
+
+void setup_world(Gfx** glist) {
+	guOrtho(&dynamic.projection,
+			-(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
+			-(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
+			1.0F, 10.0F, 1.0F);
+		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&(dynamic.projection)),
+	       G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
+		guMtxIdent(&dynamic.world.translation);
+		guMtxIdent(&dynamic.world.rotation);
+		guMtxIdent(&dynamic.world.scale);
+		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.scale),
+			G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.rotation),
+			G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.translation),
+			G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+}
 
 void
 boot(void)
@@ -204,106 +240,104 @@ mainproc(void *arg)
      */
     while (1) {
 
-	/*
-	 * pointers to build the display list.
-	 */
-	tlistp = &tlist;
-	dynamicp = &dynamic;
+		/*
+		* pointers to build the display list.
+		*/
+		tlistp = &tlist;
+		dynamicp = &dynamic;
 
-	guOrtho(&dynamicp->projection,
-		-(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
-		-(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
-		1.0F, 10.0F, 1.0F);
-	guRotate(&dynamicp->modeling, theta, 0.0F, 0.0F, 1.0F);
+		
+		//guMtxIdent(&dynamicp->modeling);
+		//guRotate(&dynamicp->modeling, theta, 0.0F, 0.0F, 1.0F);
 
-	glistp = dynamicp->glist;
+		glistp = dynamicp->glist;
 
-	/*
-	 * Tell RCP where each segment is
-	 */
-	gSPSegment(glistp++, 0, 0x0);	/* Physical address segment */
-	gSPSegment(glistp++, STATIC_SEGMENT, OS_K0_TO_PHYSICAL(staticSegment));
-	gSPSegment(glistp++, CFB_SEGMENT, OS_K0_TO_PHYSICAL(cfb[draw_buffer]));
+		/*
+		* Tell RCP where each segment is
+		*/
+		gSPSegment(glistp++, 0, 0x0);	/* Physical address segment */
+		gSPSegment(glistp++, STATIC_SEGMENT, OS_K0_TO_PHYSICAL(staticSegment));
+		gSPSegment(glistp++, CFB_SEGMENT, OS_K0_TO_PHYSICAL(cfb[draw_buffer]));
 
-	/*
-	 * Initialize RDP state.
-	 */
-	gSPDisplayList(glistp++, rdpinit_dl);
+		/*
+		* Initialize RDP state.
+		*/
+		gSPDisplayList(glistp++, rdpinit_dl);
 
-	/*
-	 * Initialize RSP state.
-	 */
-	gSPDisplayList(glistp++, rspinit_dl);
+		/*
+		* Initialize RSP state.
+		*/
+		gSPDisplayList(glistp++, rspinit_dl);
 
-	/*
-	 * Clear color framebuffer.
-	 */
-	gSPDisplayList(glistp++, clearcfb_dl);
+		/*
+		* Clear color framebuffer.
+		*/
+		gSPDisplayList(glistp++, clearcfb_dl);
 
-	/* simple triangle: */
 
-	if (do_texture) {
-	    gSPDisplayList(glistp++, textri_dl);
-	} else {
-	    gSPDisplayList(glistp++, shadetri_dl);
-	}
+		setup_world(&glistp);
+		
+		for (int i = 0; i < 2; i++) {
+			draw_entity(&entities[i], &glistp);
+		}
 
-	gDPFullSync(glistp++);
-	gSPEndDisplayList(glistp++);
+		//draw_entity(&entities[1], &glistp);
 
-#ifdef DEBUG
-	assert((glistp-dynamicp->glist) < GLIST_LEN);
-#endif
-	/* 
-	 * Build graphics task:
-	 *
-	 */
-	tlistp->t.ucode_boot = (u64 *) rspbootTextStart;
-	tlistp->t.ucode_boot_size = (u32)rspbootTextEnd - (u32)rspbootTextStart;
+		gDPFullSync(glistp++);
+		gSPEndDisplayList(glistp++);
 
-	/*
-	 * choose which ucode to run:
-	 */
-	if (rdp_flag) {
-	    /* RSP output over FIFO to RDP */
-		tlistp->t.ucode = (u64 *) gspF3DEX2_fifoTextStart;
-		tlistp->t.ucode_data = (u64 *) gspF3DEX2_fifoDataStart; 
-	} else {
-	    /* RSP output over XBUS to RDP: */
-		tlistp->t.ucode = (u64 *) gspF3DEX2_xbusTextStart;
-		tlistp->t.ucode_data = (u64 *) gspF3DEX2_xbusDataStart;
-	}
-	
-	/* initial display list: */
-	tlistp->t.data_ptr = (u64 *) dynamicp->glist;
-	tlistp->t.data_size = (u32)((glistp - dynamicp->glist) * sizeof(Gfx));
+	#ifdef DEBUG
+		assert((glistp-dynamicp->glist) < GLIST_LEN);
+	#endif
+		/* 
+		* Build graphics task:
+		*
+		*/
+		tlistp->t.ucode_boot = (u64 *) rspbootTextStart;
+		tlistp->t.ucode_boot_size = (u32)rspbootTextEnd - (u32)rspbootTextStart;
 
-	/*
-	 * Write back dirty cache lines that need to be read by the RCP.
-	 */
-	osWritebackDCache(&dynamic, sizeof(dynamic));
-	
-	/*
-	 * start up the RSP task
-	 */
-	osSpTaskStart(tlistp);
-	
-	/* wait for RDP completion */
-	(void)osRecvMesg(&rdpMessageQ, NULL, OS_MESG_BLOCK);
+		/*
+		* choose which ucode to run:
+		*/
+		if (rdp_flag) {
+			/* RSP output over FIFO to RDP */
+			tlistp->t.ucode = (u64 *) gspF3DEX2_fifoTextStart;
+			tlistp->t.ucode_data = (u64 *) gspF3DEX2_fifoDataStart; 
+		} else {
+			/* RSP output over XBUS to RDP: */
+			tlistp->t.ucode = (u64 *) gspF3DEX2_xbusTextStart;
+			tlistp->t.ucode_data = (u64 *) gspF3DEX2_xbusDataStart;
+		}
+		
+		/* initial display list: */
+		tlistp->t.data_ptr = (u64 *) dynamicp->glist;
+		tlistp->t.data_size = (u32)((glistp - dynamicp->glist) * sizeof(Gfx));
 
-	/* setup to swap buffers */
-	osViSwapBuffer(cfb[draw_buffer]);
+		/*
+		* Write back dirty cache lines that need to be read by the RCP.
+		*/
+		osWritebackDCache(&dynamic, sizeof(dynamic));
+		
+		/*
+		* start up the RSP task
+		*/
+		osSpTaskStart(tlistp);
+		
+		/* wait for RDP completion */
+		(void)osRecvMesg(&rdpMessageQ, NULL, OS_MESG_BLOCK);
 
-	/* Make sure there isn't an old retrace in queue 
-	 * (assumes queue has a depth of 1) 
-	 */
-	if (MQ_IS_FULL(&retraceMessageQ))
-	    (void)osRecvMesg(&retraceMessageQ, NULL, OS_MESG_BLOCK);
-	
-	/* Wait for Vertical retrace to finish swap buffers */
-	(void)osRecvMesg(&retraceMessageQ, NULL, OS_MESG_BLOCK);
-	draw_buffer ^= 1;
+		/* setup to swap buffers */
+		osViSwapBuffer(cfb[draw_buffer]);
 
-	theta += 1.0F;
+		/* Make sure there isn't an old retrace in queue 
+		* (assumes queue has a depth of 1) 
+		*/
+		if (MQ_IS_FULL(&retraceMessageQ))
+			(void)osRecvMesg(&retraceMessageQ, NULL, OS_MESG_BLOCK);
+		
+		/* Wait for Vertical retrace to finish swap buffers */
+		(void)osRecvMesg(&retraceMessageQ, NULL, OS_MESG_BLOCK);
+		draw_buffer ^= 1;
+
     }
 }

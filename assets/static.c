@@ -67,13 +67,13 @@ Gfx rdpinit_dl[] = {
 Gfx clearcfb_dl[] = {
     gsDPSetCycleType(G_CYC_FILL),
     gsDPSetColorImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, rsp_cfb),
-    gsDPSetFillColor(GPACK_RGBA5551(64,64,64,1) << 16 | 
+    /*gsDPSetFillColor(GPACK_RGBA5551(64,64,64,1) << 16 | 
 		     GPACK_RGBA5551(64,64,64,1)),
     gsDPFillRectangle(0, 0, SCREEN_WD-1, SCREEN_HT-1),
-    gsDPPipeSync(),
+    gsDPPipeSync(),*/
     gsDPSetFillColor(GPACK_RGBA5551(64,64,255,1) << 16 | 
 		     GPACK_RGBA5551(64,64,255,1)),
-    gsDPFillRectangle(20, 20, SCREEN_WD-20, SCREEN_HT-20),
+    gsDPFillRectangle(0, 0, SCREEN_WD, SCREEN_HT),
     gsSPEndDisplayList(),
 };
 
@@ -81,21 +81,10 @@ Gfx clearcfb_dl[] = {
  * This group of vertices, and accompanying display list, demonstrate
  * simple Gouraud triangles:
  */
-static Vtx shade_vtx[] =  {
-        {        -64,  64, -5, 0, 0, 0, 0, 0xff, 0, 0xff	},
-        {         64,  64, -5, 0, 0, 0, 0, 0, 0, 0xff	},
-        {         64, -64, -5, 0, 0, 0, 0, 0, 0xff, 0xff	},
-        {        -64, -64, -5, 0, 0, 0, 0xff, 0, 0, 0xff	},
-};
 
-Gfx shadetri_dl[] = {
-    gsSPMatrix(OS_K0_TO_PHYSICAL(&(dynamic.projection)),
-	       G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH),
+/*Gfx shadetri_dl[] = {
     gsSPMatrix(OS_K0_TO_PHYSICAL(&(dynamic.modeling)),
 	       G_MTX_MODELVIEW|G_MTX_LOAD|G_MTX_NOPUSH),
-    /*
-     * Setup display modes antialiased in 1 cycle
-     */
     gsDPPipeSync(),
     gsDPSetCycleType(G_CYC_1CYCLE),
     gsDPSetRenderMode(G_RM_AA_OPA_SURF, G_RM_AA_OPA_SURF2),
@@ -104,7 +93,7 @@ Gfx shadetri_dl[] = {
     gsSP1Triangle(0, 1, 2, 0),
     gsSP1Triangle(0, 2, 3, 0),
     gsSPEndDisplayList(),
-};
+};*/
 
 
 /* 
@@ -129,7 +118,7 @@ static Vtx tex_vtx[] =  {
 /* a 32x32 RGBA16 texture: */
 #include "brick.h"
 
-Gfx textri_dl[] = {
+/*Gfx textri_dl[] = {
     gsSPMatrix(OS_K0_TO_PHYSICAL(&(dynamic.projection)),
 	       G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH),
     gsSPMatrix(OS_K0_TO_PHYSICAL(&(dynamic.modeling)),
@@ -143,6 +132,7 @@ Gfx textri_dl[] = {
      * get an exact texture scale of 1.0, we scale above by 2.0, and
      * scale down here by 0.5
      */
+    /*
     gsSPTexture(0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON),
     gsDPSetCombineMode(G_CC_DECALRGB, G_CC_DECALRGB),
     gsDPSetTextureFilter(G_TF_BILERP),
@@ -153,6 +143,7 @@ Gfx textri_dl[] = {
     gsSP1Triangle(0, 1, 2, 0),
     gsSP1Triangle(0, 2, 3, 0),
     gsSPTexture(0, 0, 0, 0, G_OFF), /* done; turn texture off */
+    /*
     gsSPEndDisplayList(),
-};
+};*/
 
