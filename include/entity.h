@@ -12,12 +12,14 @@ typedef struct {
     Mtx translation;
 } Transform;
 
-typedef struct
+typedef struct Entity
 {
     Vector3f position;
     Vector3f rotation;
     Vector3f scale;
     Transform transform;
+
+    void (*update)(struct Entity*);
 } Entity;
 
 Vtx quad_vtx[] =  {

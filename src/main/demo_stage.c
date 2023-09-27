@@ -90,16 +90,26 @@ static int draw_buffer = 0;
 
 OSPiHandle	*handler;
 
+void rotate_entity(Entity* entity) {
+	entity->rotation.z += 0.1f;
+}
+
+void move_entity(Entity* entity) {
+	entity->position.x  = (entity->position.x > SCREEN_WD / 2) ? -SCREEN_WD / 2 : entity->position.x + 1;
+}
+
 Entity entities[2] = {
 	{ 
 		.position = {100.0f, 0.0f, 0.0f},
 		.rotation = {0.0f, 0.0f, -5.0f},
-		.scale = {25.0f, 25.0f, 1.0f}
+		.scale = {25.0f, 25.0f, 1.0f},
+		.update = &move_entity
 	},
 	{ 
 		.position = {0.0f, 0.0f, 0.0f},
 		.rotation = {0.0f, 0.0f, 10.0f},
-		.scale = {32.f, 25.0f, 1.0f}
+		.scale = {32.f, 25.0f, 1.0f},
+		.update = &rotate_entity
 	}
 };
 
@@ -248,6 +258,9 @@ mainproc(void *arg)
 		setup_world(&glistp);
 		
 		for (int i = 0; i < 2; i++) {
+			if(entities[i].update != NULL) {
+				entities[i].update(&entities[i]);
+			}
 			draw_entity(&entities[i], &glistp);
 			//entities[i].rotation.z += 0.1f;
 		}
