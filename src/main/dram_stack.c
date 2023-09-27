@@ -24,18 +24,13 @@
  */
 
 /*  for CodeWarrior compiler */
-#ifdef __MWERKS__
-#pragma align(16)
-#endif
-
 #if __GNUC__ /* { */
 
 /* for GNU compiler */
 u64 dram_stack[SP_DRAM_STACK_SIZE64] __attribute__((aligned (16))); /* used for matrix stack */
 
-#else /* }{ */
+#else 
 
-/* for SGI compiler */
-u64 dram_stack[SP_DRAM_STACK_SIZE64];	/* used for matrix stack */
+#error Unsupported compiler
 
 #endif /* } */

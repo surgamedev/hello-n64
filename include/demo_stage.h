@@ -46,9 +46,6 @@
 
 extern Gfx 	rspinit_dl[];
 extern Gfx 	rdpinit_dl[];
-extern Gfx	clearcfb_dl[];
-extern Gfx 	shadetri_dl[];
-extern Gfx 	textri_dl[];
 
 /* RSP task data that is modified by the RSP and read the the CPU */
 

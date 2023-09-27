@@ -61,41 +61,6 @@ Gfx rdpinit_dl[] = {
     gsSPEndDisplayList(),
 };
 
-
-/* clear the color frame buffer: */
-
-Gfx clearcfb_dl[] = {
-    gsDPSetCycleType(G_CYC_FILL),
-    gsDPSetColorImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, rsp_cfb),
-    /*gsDPSetFillColor(GPACK_RGBA5551(64,64,64,1) << 16 | 
-		     GPACK_RGBA5551(64,64,64,1)),
-    gsDPFillRectangle(0, 0, SCREEN_WD-1, SCREEN_HT-1),
-    gsDPPipeSync(),*/
-    gsDPSetFillColor(GPACK_RGBA5551(64,64,255,1) << 16 | 
-		     GPACK_RGBA5551(64,64,255,1)),
-    gsDPFillRectangle(0, 0, SCREEN_WD, SCREEN_HT),
-    gsSPEndDisplayList(),
-};
-
-/* 
- * This group of vertices, and accompanying display list, demonstrate
- * simple Gouraud triangles:
- */
-
-/*Gfx shadetri_dl[] = {
-    gsSPMatrix(OS_K0_TO_PHYSICAL(&(dynamic.modeling)),
-	       G_MTX_MODELVIEW|G_MTX_LOAD|G_MTX_NOPUSH),
-    gsDPPipeSync(),
-    gsDPSetCycleType(G_CYC_1CYCLE),
-    gsDPSetRenderMode(G_RM_AA_OPA_SURF, G_RM_AA_OPA_SURF2),
-    gsSPSetGeometryMode(G_SHADE | G_SHADING_SMOOTH),
-    gsSPVertex(&(shade_vtx[0]), 4, 0),
-    gsSP1Triangle(0, 1, 2, 0),
-    gsSP1Triangle(0, 2, 3, 0),
-    gsSPEndDisplayList(),
-};*/
-
-
 /* 
  * This group of vertices, and accompanying display list, demonstrate
  * simple textured triangles.

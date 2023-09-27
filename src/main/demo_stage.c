@@ -1,31 +1,3 @@
-/**************************************************************************
- *                                                                        *
- *               Copyright (C) 1995, Silicon Graphics, Inc.               *
- *                                                                        *
- *  These coded instructions, statements, and computer programs  contain  *
- *  unpublished  proprietary  information of Silicon Graphics, Inc., and  *
- *  are protected by Federal copyright  law.  They  may not be disclosed  *
- *  to  third  parties  or copied or duplicated in any form, in whole or  *
- *  in part, without the prior written consent of Silicon Graphics, Inc.  *
- *                                                                        *
- *************************************************************************/
-
-/*---------------------------------------------------------------------*
-        Copyright (C) 1998 Nintendo. (Originated by SGI)
-        
-        $RCSfile: onetri.c,v $
-        $Revision: 1.1.1.2 $
-        $Date: 2002/10/29 08:05:57 $
- *---------------------------------------------------------------------*/
-
-/*
- * File:	onetri.c
- * Create Date:	Mon Apr 17 11:45:57 PDT 1995
- *
- * VERY simple app, draws a couple triangles spinning.
- *
- */
-
 #include <ultra64.h>
 #include <PR/ramrom.h>	/* needed for argument passing into the app */
 #include <assert.h>
@@ -113,9 +85,8 @@ Gfx		*glistp;	/* global for test case procs */
 /*
  * global variables
  */
-static int	rdp_flag = 0;	/* 0:xbus , 1:fifo */
-static int	do_texture = 0;
-static int      draw_buffer = 0;
+static int rdp_flag = 0;	/* 0:xbus , 1:fifo */
+static int draw_buffer = 0;
 
 OSPiHandle	*handler;
 
@@ -132,22 +103,30 @@ Entity entities[2] = {
 	}
 };
 
+void clear_framebuffer(Gfx** glist) {
+	gDPSetCycleType((*glist)++, G_CYC_FILL);
+	gDPSetColorImage((*glist)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, rsp_cfb);
+	gDPSetFillColor((*glist)++, GPACK_RGBA5551(64, 64, 255, 1) << 16 | GPACK_RGBA5551(64, 64, 255, 1));
+	gDPFillRectangle((*glist)++, 0, 0, SCREEN_WD, SCREEN_HT);
+	gDPPipeSync((*glist)++);
+}
+
 void setup_world(Gfx** glist) {
 	guOrtho(&dynamic.projection,
 			-(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
 			-(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
 			1.0F, 10.0F, 1.0F);
-		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&(dynamic.projection)),
-	       G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
-		guMtxIdent(&dynamic.world.translation);
-		guMtxIdent(&dynamic.world.rotation);
-		guMtxIdent(&dynamic.world.scale);
-		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.scale),
-			G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.rotation),
-			G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-		gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.translation),
-			G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&(dynamic.projection)),
+	    G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
+	guMtxIdent(&dynamic.world.translation);
+	guMtxIdent(&dynamic.world.rotation);
+	guMtxIdent(&dynamic.world.scale);
+	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.scale),
+		G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.rotation),
+		G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.translation),
+		G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
 }
 
 void
@@ -254,34 +233,24 @@ mainproc(void *arg)
 
 		/*
 		* Tell RCP where each segment is
+		* a.k.a. RCP Init
 		*/
 		gSPSegment(glistp++, 0, 0x0);	/* Physical address segment */
 		gSPSegment(glistp++, STATIC_SEGMENT, OS_K0_TO_PHYSICAL(staticSegment));
 		gSPSegment(glistp++, CFB_SEGMENT, OS_K0_TO_PHYSICAL(cfb[draw_buffer]));
-
-		/*
-		* Initialize RDP state.
-		*/
 		gSPDisplayList(glistp++, rdpinit_dl);
-
-		/*
-		* Initialize RSP state.
-		*/
 		gSPDisplayList(glistp++, rspinit_dl);
 
 		/*
 		* Clear color framebuffer.
 		*/
-		gSPDisplayList(glistp++, clearcfb_dl);
-
-
+		clear_framebuffer(&glistp);
 		setup_world(&glistp);
 		
 		for (int i = 0; i < 2; i++) {
 			draw_entity(&entities[i], &glistp);
+			//entities[i].rotation.z += 0.1f;
 		}
-
-		//draw_entity(&entities[1], &glistp);
 
 		gDPFullSync(glistp++);
 		gSPEndDisplayList(glistp++);
@@ -338,6 +307,5 @@ mainproc(void *arg)
 		/* Wait for Vertical retrace to finish swap buffers */
 		(void)osRecvMesg(&retraceMessageQ, NULL, OS_MESG_BLOCK);
 		draw_buffer ^= 1;
-
     }
 }

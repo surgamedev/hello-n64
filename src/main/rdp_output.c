@@ -32,19 +32,13 @@
  */
 
 
-/*  for CodeWarior compiler */
-#ifdef __MWERKS__
-#pragma align(16)
-#endif
-
 #if __GNUC__ /* { */
 
 /* for GNU compiler */
 u64 rdp_output[RDP_OUTPUT_LEN] __attribute__((aligned (16))); /* buffer for RDP DL */
 
-#else /* }{ */
+#else
 
-/* for SGI compiler */
-u64 rdp_output[RDP_OUTPUT_LEN];		/* buffer for RDP DL */
+#error Unsupported compiler
 
 #endif /* } */
