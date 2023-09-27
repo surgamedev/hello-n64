@@ -51,7 +51,7 @@ OSIoMesg	dmaIOMessageBuf;	/* see man page to understand this */
  */
 typedef struct {
 	Mtx	projection;
-	Transform world;
+	Mtx modelview;
 	Gfx	glist[GLIST_LEN];
 } Dynamic;
 
@@ -100,15 +100,15 @@ void move_entity(Entity* entity) {
 
 Entity entities[2] = {
 	{ 
-		.position = {100.0f, 0.0f, 0.0f},
+		.position = {100.0f, 0.0f, -5.0f},
 		.rotation = {0.0f, 0.0f, -5.0f},
-		.scale = {25.0f, 25.0f, 1.0f},
+		.scale = 25.0f,
 		.update = &move_entity
 	},
 	{ 
-		.position = {0.0f, 0.0f, 0.0f},
+		.position = {0.0f, 0.0f, -5.0f},
 		.rotation = {0.0f, 0.0f, 10.0f},
-		.scale = {32.f, 25.0f, 1.0f},
+		.scale = 25.0f,
 		.update = &rotate_entity
 	}
 };
@@ -125,18 +125,18 @@ void setup_world(Gfx** glist) {
 	guOrtho(&dynamic.projection,
 			-(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
 			-(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
-			1.0F, 10.0F, 1.0F);
+			0.1F, 100.0F, 1.0F);
 	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&(dynamic.projection)),
 	    G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
-	guMtxIdent(&dynamic.world.translation);
-	guMtxIdent(&dynamic.world.rotation);
-	guMtxIdent(&dynamic.world.scale);
-	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.scale),
+	guMtxIdent(&dynamic.modelview);
+	// guMtxIdent(&dynamic.world.rotation);
+	// guMtxIdent(&dynamic.world.scale);
+	// gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.scale),
+	// 	G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+	// gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.rotation),
+	// 	G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.modelview),
 		G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.rotation),
-		G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.translation),
-		G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
 }
 
 void
