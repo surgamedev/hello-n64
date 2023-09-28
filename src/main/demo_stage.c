@@ -91,7 +91,8 @@ static int draw_buffer = 0;
 OSPiHandle	*handler;
 
 void rotate_entity(Entity* entity) {
-	entity->rotation.z += 0.1f;
+	static Vector3f rot = {.x = 0.0f, .y = 0.0f, .z = 0.1f};
+	entity->rotation = Vector3f_add_vector(entity->rotation, rot);
 }
 
 void move_entity(Entity* entity) {

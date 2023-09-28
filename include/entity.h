@@ -2,9 +2,7 @@
 #ifdef _LANGUAGE_C
 #include <ultra64.h>
 
-typedef struct {
-    float x, y, z;
-} Vector3f;
+#include "vector.h"
 
 typedef struct Entity
 {
@@ -16,7 +14,7 @@ typedef struct Entity
     void (*update)(struct Entity*);
 } Entity;
 
-Vtx quad_vtx[] =  {
+static Vtx quad_vtx[] =  {
         {        -2,  2, 0, 0, 0, 0, 0,    0xff,   0,       0xff	},
         {         2,  2, 0, 0, 0, 0, 0,    0,      0,       0xff	},
         {         2, -2, 0, 0, 0, 0, 0,    0,      0xff,    0xff	},
@@ -29,13 +27,9 @@ void draw_entity(Entity* entity, Gfx** glist) {
     // guTranslate(&(entity->transform.translation), entity->position.x, entity->position.y, entity->position.z);
     guPosition(
         &entity->transform,
-        entity->rotation.x,
-        entity->rotation.y,
-        entity->rotation.z,
+        Vector3f_unpack(entity->rotation),
         entity->scale,
-        entity->position.x,
-        entity->position.y,
-        entity->position.z
+        Vector3f_unpack(entity->position)
     );
 
     gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&(entity->transform)),
