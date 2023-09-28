@@ -16,6 +16,6 @@
  */
 
 #include <ultra64.h>
-#include "demo_stage.h"
+#include "renderer.h"
 
 u16 cfb[2][SCREEN_WD*SCREEN_HT];

@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "demo_stage.h"
+#include "renderer.h"
 #include "entity.h"
 /*
  * Symbol genererated by "makerom" to indicate the end of the code segment
@@ -45,17 +46,6 @@ static OSMesgQueue PiMessageQ;
 OSMesgQueue	dmaMessageQ, rdpMessageQ, retraceMessageQ;
 OSMesg		dmaMessageBuf, rdpMessageBuf, retraceMessageBuf;
 OSIoMesg	dmaIOMessageBuf;	/* see man page to understand this */
-
-/*
- * Dynamic data.
- */
-typedef struct {
-	Mtx	projection;
-	Mtx modelview;
-	Gfx	glist[GLIST_LEN];
-} Dynamic;
-
-Dynamic dynamic;
 
 /*
  * Task descriptor.
@@ -114,32 +104,6 @@ Entity entities[2] = {
 	}
 };
 
-void clear_framebuffer(Gfx** glist) {
-	gDPSetCycleType((*glist)++, G_CYC_FILL);
-	gDPSetColorImage((*glist)++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, rsp_cfb);
-	gDPSetFillColor((*glist)++, GPACK_RGBA5551(64, 64, 255, 1) << 16 | GPACK_RGBA5551(64, 64, 255, 1));
-	gDPFillRectangle((*glist)++, 0, 0, SCREEN_WD, SCREEN_HT);
-	gDPPipeSync((*glist)++);
-}
-
-void setup_world(Gfx** glist) {
-	guOrtho(&dynamic.projection,
-			-(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
-			-(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
-			0.1F, 100.0F, 1.0F);
-	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&(dynamic.projection)),
-	    G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
-	guMtxIdent(&dynamic.modelview);
-	// guMtxIdent(&dynamic.world.rotation);
-	// guMtxIdent(&dynamic.world.scale);
-	// gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.scale),
-	// 	G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-	// gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.world.rotation),
-	// 	G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-	gSPMatrix((*glist)++, OS_K0_TO_PHYSICAL(&dynamic.modelview),
-		G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-}
-
 void
 boot(void)
 {
@@ -193,7 +157,7 @@ static void
 mainproc(void *arg)
 {
     OSTask		*tlistp;
-    Dynamic		*dynamicp;
+    Camera		*camerap;
     char		*staticSegment;
     
     /*
@@ -234,13 +198,13 @@ mainproc(void *arg)
 		* pointers to build the display list.
 		*/
 		tlistp = &tlist;
-		dynamicp = &dynamic;
+		camerap = &camera;
 
 		
-		//guMtxIdent(&dynamicp->modeling);
-		//guRotate(&dynamicp->modeling, theta, 0.0F, 0.0F, 1.0F);
+		//guMtxIdent(&camerap->modeling);
+		//guRotate(&camerap->modeling, theta, 0.0F, 0.0F, 1.0F);
 
-		glistp = dynamicp->glist;
+		glistp = camerap->glist;
 
 		/*
 		* Tell RCP where each segment is
@@ -270,7 +234,7 @@ mainproc(void *arg)
 		gSPEndDisplayList(glistp++);
 
 	#ifdef DEBUG
-		assert((glistp-dynamicp->glist) < GLIST_LEN);
+		assert((glistp-camerap->glist) < GLIST_LEN);
 	#endif
 		/* 
 		* Build graphics task:
@@ -293,13 +257,13 @@ mainproc(void *arg)
 		}
 		
 		/* initial display list: */
-		tlistp->t.data_ptr = (u64 *) dynamicp->glist;
-		tlistp->t.data_size = (u32)((glistp - dynamicp->glist) * sizeof(Gfx));
+		tlistp->t.data_ptr = (u64 *) camerap->glist;
+		tlistp->t.data_size = (u32)((glistp - camerap->glist) * sizeof(Gfx));
 
 		/*
 		* Write back dirty cache lines that need to be read by the RCP.
 		*/
-		osWritebackDCache(&dynamic, sizeof(dynamic));
+		osWritebackDCache(&camera, sizeof(camera));
 		
 		/*
 		* start up the RSP task

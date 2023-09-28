@@ -20,45 +20,28 @@
 #define	STATIC_SEGMENT		1
 #define	CFB_SEGMENT		2
 
-#define	SCREEN_HT	240
-#define	SCREEN_WD	320
-
 /* this stack size is in bytes, and is a lot larger
  * than this program needs.
  */
 #define	STACKSIZE	0x2000
-
-#define	GLIST_LEN	2048
 /*
  * ifdef needed because this file is included by "spec"
  */
 #ifdef _LANGUAGE_C
 /*
- * Layout of dynamic data.
+ * Layout of camera data.
  *
  * This structure holds the things which change per frame. It is advantageous
- * to keep dynamic data together so that we may selectively write back dirty
+ * to keep camera data together so that we may selectively write back dirty
  * data cache lines to DRAM prior to processing by the RCP.
  *
  */
 
 /* these are the static display lists */
-
-extern Gfx 	rspinit_dl[];
-extern Gfx 	rdpinit_dl[];
-
 /* RSP task data that is modified by the RSP and read the the CPU */
 
 extern u64 dram_stack[];	/* used for matrix stack */
 extern u64 rdp_output[];	/* RSP writes back RDP data */
 #define RDP_OUTPUT_LEN (4096*16)
-
-/* CPU addresses for the color frame buffer */
-
-extern u16	cfb[][SCREEN_WD*SCREEN_HT];
-
-/* RSP address for the color frame buffer */
-
-extern u16	rsp_cfb[];
 
 #endif	/* _LANGUAGE_C */

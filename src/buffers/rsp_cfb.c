@@ -18,6 +18,6 @@
  */
 
 #include <ultra64.h>
-#include "demo_stage.h"
+#include "renderer.h"
 
 u16	rsp_cfb[SCREEN_WD*SCREEN_HT];
