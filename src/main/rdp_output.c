@@ -31,11 +31,10 @@
  * buffers used by fifo microcode only
  */
 
-
 #if __GNUC__ /* { */
 
 /* for GNU compiler */
-u64 rdp_output[RDP_OUTPUT_LEN] __attribute__((aligned (16))); /* buffer for RDP DL */
+u64 rdp_output[RDP_OUTPUT_LEN] __attribute__((aligned(16))); /* buffer for RDP DL */
 
 #else
 

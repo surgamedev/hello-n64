@@ -27,9 +27,9 @@
 #if __GNUC__ /* { */
 
 /* for GNU compiler */
-u64 dram_stack[SP_DRAM_STACK_SIZE64] __attribute__((aligned (16))); /* used for matrix stack */
+u64 dram_stack[SP_DRAM_STACK_SIZE64] __attribute__((aligned(16))); /* used for matrix stack */
 
-#else 
+#else
 
 #error Unsupported compiler
 

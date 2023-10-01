@@ -17,13 +17,13 @@
  *
  */
 
-#define	STATIC_SEGMENT		1
-#define	CFB_SEGMENT		2
+#define STATIC_SEGMENT 1
+#define CFB_SEGMENT 2
 
 /* this stack size is in bytes, and is a lot larger
  * than this program needs.
  */
-#define	STACKSIZE	0x2000
+#define STACKSIZE 0x2000
 /*
  * ifdef needed because this file is included by "spec"
  */
@@ -40,8 +40,8 @@
 /* these are the static display lists */
 /* RSP task data that is modified by the RSP and read the the CPU */
 
-extern u64 dram_stack[];	/* used for matrix stack */
-extern u64 rdp_output[];	/* RSP writes back RDP data */
-#define RDP_OUTPUT_LEN (4096*16)
+extern u64 dram_stack[]; /* used for matrix stack */
+extern u64 rdp_output[]; /* RSP writes back RDP data */
+#define RDP_OUTPUT_LEN (4096 * 16)
 
-#endif	/* _LANGUAGE_C */
+#endif /* _LANGUAGE_C */
