@@ -4,7 +4,9 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/usr/include/n64"
+                "/usr/include/n64",
+                "/usr/include/n64/nusys",
+                "${workspaceFolder}/include"
             ],
             "defines": [
                 "_LANGUAGE_C=1"

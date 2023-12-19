@@ -4,7 +4,7 @@ TARGET_STRING := game
 TARGET := $(TARGET_STRING)
 
 # Preprocessor definitions
-DEFINES := _FINALROM=1 NDEBUG=1 F3DEX_GBI_2=1
+DEFINES := DEBUG=1 F3DEX_GBI_2=1 NU_DEBUG=1
 
 SRC_DIRS :=
 
@@ -21,6 +21,8 @@ COLOR ?= 1
 # Target Executable and Sources                                                #
 #==============================================================================#
 # BUILD_DIR is the location where all build artifacts are placed
+include $(ROOT)/usr/include/make/PRdefs
+
 BUILD_DIR := build
 ROM            := $(BUILD_DIR)/$(TARGET_STRING).z64
 ELF            := $(BUILD_DIR)/$(TARGET_STRING).elf
@@ -29,13 +31,14 @@ BOOT		:= /usr/lib/n64/PR/bootcode/boot.6102
 BOOT_OBJ	:= $(BUILD_DIR)/boot.6102.o
 
 # Directories containing source files
-SRC_DIRS += src src/buffers src/main assets asm
+SRC_DIRS += src src/main asm
 
 C_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 S_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.s))
 
 # Object files
-O_FILES := $(foreach file,$(C_FILES),$(BUILD_DIR)/$(file:.c=.o)) \
+O_FILES := /usr/lib/n64/nusys/nusys_isv.o \
+           $(foreach file,$(C_FILES),$(BUILD_DIR)/$(file:.c=.o)) \
            $(foreach file,$(S_FILES),$(BUILD_DIR)/$(file:.s=.o)) \
 		   $(BOOT_OBJ)
 
@@ -54,7 +57,7 @@ AR        := mips-n64-ar
 OBJDUMP   := mips-n64-objdump
 OBJCOPY   := mips-n64-objcopy
 
-INCLUDE_DIRS += /usr/include/n64 include $(BUILD_DIR) $(BUILD_DIR)/include src .
+INCLUDE_DIRS += /usr/include/n64 /usr/include/n64/PR /usr/include/n64/nusys include $(BUILD_DIR) $(BUILD_DIR)/include src .
 
 C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
 DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
@@ -125,7 +128,7 @@ $(BOOT_OBJ): $(BOOT)
 # Link final ELF file
 $(ELF): $(O_FILES) $(BUILD_DIR)/$(LD_SCRIPT)
 	@$(PRINT) "$(GREEN)Linking ELF file:  $(BLUE)$@ $(NO_COL)\n"
-	$(V)$(LD) -L $(BUILD_DIR) -T $(BUILD_DIR)/$(LD_SCRIPT) -Map $(BUILD_DIR)/$(TARGET).map --no-check-sections -o $@ $(O_FILES) -L/usr/lib/n64 -lultra_rom -L$(N64_LIBGCCDIR)
+	$(V)$(LD) -L $(BUILD_DIR) -T $(BUILD_DIR)/$(LD_SCRIPT) -Map $(BUILD_DIR)/$(TARGET).map --no-check-sections -o $@ $(O_FILES) -L/usr/lib/n64/nusys -lnusys_d -L/usr/lib/n64 -lultra_d -L$(N64_LIBGCCDIR) -lgcc
 
 # Build ROM
 $(ROM): $(ELF)

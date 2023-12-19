@@ -1,5 +1,4 @@
 #pragma once
-#ifdef _LANGUAGE_C
 
 #include <ultra64.h>
 
@@ -80,5 +79,3 @@ inline Vector3f Vector3f_norm(Vector3f dst)
 }
 
 #define Vector3f_unpack(vec) (vec).x, (vec).y, (vec).z
-
-#endif /* _LANGUAGE_C */

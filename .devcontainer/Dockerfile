@@ -17,7 +17,7 @@ ARG USER_GID=$USER_UID
 ENV PATH=/etc/n64/usr/sbin:${PATH}
 ENV PATH=/opt/crashsdk/bin:${PATH}
 ENV ROOT=/etc/n64
-ENV N64_LIBGCCDIR=/opt/crashsdk/lib/gcc/mips64-elf/11.2.0
+ENV N64_LIBGCCDIR=/opt/crashsdk/lib/gcc/mips64-elf/12.2.0
 
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
