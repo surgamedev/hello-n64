@@ -11,7 +11,7 @@
 #include "graphic.h"
 
 Gfx          gfx_glist[2][GFX_GLIST_LEN];
-Dynamic      gfx_dynamic[2];
+Camera       gfx_camera[2];
 Gfx*         glistp;
 u32          gfx_gtask_no = 0;
 
@@ -59,4 +59,20 @@ void gfxClearCfb(void)
 				GPACK_RGBA5551(0, 0, 0, 1)));
   gDPFillRectangle(glistp++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
   gDPPipeSync(glistp++);
+}
+
+void initGfx() {
+  gfxRCPInit();
+  gfxClearCfb();
+}
+
+void setupCamera(Camera* camerap) {
+  guOrtho(&camerap->projection,
+	  -(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
+	  -(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
+	  1.0F, 10.0F, 1.0F);
+  guMtxIdent(&camerap->modeling);
+
+  gSPMatrix(glistp++,OS_K0_TO_PHYSICAL(&(camerap->projection)),
+		G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
 }

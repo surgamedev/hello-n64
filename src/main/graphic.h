@@ -21,16 +21,19 @@
 typedef struct {
   Mtx     projection;
   Mtx     modeling;
-} Dynamic;
+} Camera;
 
 /*-------------------------------- parameter---------------------------------*/
-extern Dynamic gfx_dynamic[];
+extern Camera gfx_camera[];
 extern Gfx* glistp;
 extern Gfx gfx_glist[][GFX_GLIST_LEN];
 extern u32 gfx_gtask_no;
 /*-------------------------------- function ---------------------------------*/
 extern void gfxRCPInit(void);
 extern void gfxClearCfb(void);
+
+extern void initGfx();
+extern void setupCamera(Camera*);
 /*------------------------------- other extern define -----------------------*/
 extern Gfx setup_rdpstate[];
 extern Gfx setup_rspstate[];

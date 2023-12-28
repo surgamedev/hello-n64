@@ -39,34 +39,18 @@ void initStage00(void)
 /* Make the display list and activate the task */
 void makeDL00(void)
 {
-  Dynamic* dynamicp;
+  Camera* camerap;
   char conbuf[20]; 
 
   /* Specify the display list buffer */
-  dynamicp = &gfx_dynamic[gfx_gtask_no];
+  camerap = &gfx_camera[gfx_gtask_no];
   glistp = &gfx_glist[gfx_gtask_no][0];
 
-  /* Initialize RCP */
-  gfxRCPInit();
+  initGfx();
+  setupCamera(camerap);
 
-  /* Clear the frame and Z-buffer */
-  gfxClearCfb();
-
-  /* projection,modeling matrix set */
-  guOrtho(&dynamicp->projection,
-	  -(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
-	  -(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
-	  1.0F, 10.0F, 1.0F);
-  guRotate(&dynamicp->modeling, entities[0].rotation.z, 0.0F, 0.0F, 1.0F);
-
-  gSPMatrix(glistp++,OS_K0_TO_PHYSICAL(&(dynamicp->projection)),
-		G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
   for (int i = 0; i < 2; i++)
   {
-    if (entities[i].update != NULL)
-    {
-      entities[i].update(&entities[i]);
-    }
     draw_entity(&entities[i], &glistp);
   }
 
@@ -92,5 +76,11 @@ void makeDL00(void)
 /* The game progressing process for stage 0 */
 void updateGame00(void)
 {  
-
+  for (int i = 0; i < 2; i++)
+  {
+    if (entities[i].update != NULL)
+    {
+      entities[i].update(&entities[i]);
+    }
+  }
 }
