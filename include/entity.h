@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _ENTITY_H_
+#define _ENTITY_H_
 
 #include <ultra64.h>
 #include "vector.h"
@@ -41,3 +42,5 @@ void draw_entity(Entity *entity, Gfx **glistp)
 
     gSP2Triangles((*glistp)++, 0, 1, 2, 0, 0, 2, 3, 0);
 }
+
+#endif /* _ENTITY_H_ */

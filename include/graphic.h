@@ -5,9 +5,10 @@
 
    Copyright (C) 1997-1999, NINTENDO Co,Ltd.
 */
-
 #ifndef _GRAPHIC_H_
 #define _GRAPHIC_H_
+
+#include <ultra64.h>
 
 /* The screen size  */
 #define SCREEN_HT        240
@@ -20,7 +21,6 @@
 /* The structure of the projection-matrix  */
 typedef struct {
   Mtx     projection;
-  Mtx     modeling;
 } Camera;
 
 /*-------------------------------- parameter---------------------------------*/

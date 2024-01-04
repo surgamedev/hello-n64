@@ -71,7 +71,6 @@ void setupCamera(Camera* camerap) {
 	  -(float)SCREEN_WD/2.0F, (float)SCREEN_WD/2.0F,
 	  -(float)SCREEN_HT/2.0F, (float)SCREEN_HT/2.0F,
 	  1.0F, 10.0F, 1.0F);
-  guMtxIdent(&camerap->modeling);
 
   gSPMatrix(glistp++,OS_K0_TO_PHYSICAL(&(camerap->projection)),
 		G_MTX_PROJECTION|G_MTX_LOAD|G_MTX_NOPUSH);
