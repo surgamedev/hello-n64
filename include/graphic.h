@@ -1,12 +1,4 @@
-/*
-   graphic.h
-
-   The definition of graphic and around 
-
-   Copyright (C) 1997-1999, NINTENDO Co,Ltd.
-*/
-#ifndef _GRAPHIC_H_
-#define _GRAPHIC_H_
+#pragma once
 
 #include <ultra64.h>
 
@@ -37,8 +29,3 @@ extern void setupCamera(Camera*);
 /*------------------------------- other extern define -----------------------*/
 extern Gfx setup_rdpstate[];
 extern Gfx setup_rspstate[];
-
-#endif /* _GRAPHIC_H_ */
-
-
-
