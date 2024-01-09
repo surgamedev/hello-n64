@@ -5,8 +5,7 @@
 
 static void rotate_entity(Entity *entity)
 {
-    static Vector3f rot = {.x = 0.0f, .y = 0.0f, .z = 0.1f};
-    entity->rotation = Vector3f_add_vector(entity->rotation, rot);
+    entity->rotation.z += 0.1f;
 }
 
 static void move_entity(Entity *entity)
@@ -18,11 +17,15 @@ static Entity entities[2] = {
     {.position = {10.0f, 0.0f, -5.0f},
      .rotation = {0.0f, 0.0f, -5.0f},
      .scale = 1.0f,
-     .update = &move_entity},
+     .update = &move_entity,
+     .mesh = basic_mesh
+    },
     {.position = {0.0f, 0.0f, -5.0f},
      .rotation = {0.0f, 0.0f, 10.0f},
      .scale = 1.0f,
-     .update = &rotate_entity}};
+     .update = &rotate_entity,
+     .mesh = basic_mesh
+     }};
 
 void renderGame()
 {
