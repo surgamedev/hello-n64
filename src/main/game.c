@@ -8,45 +8,31 @@ static void rotate_entity(Entity *entity)
 
 static void move_entity(Entity *entity)
 {
-    entity->position.x = (entity->position.x > SCREEN_WD / 2) ? -SCREEN_WD / 2 : entity->position.x + 1;
+    Vector3f pos = {
+        .x = getStickX() / 20,
+        .y = getStickY() / 20,
+        .z = 0
+    };
+
+    entity->position = Vector3f_add_vector(entity->position, pos);
 }
 
 static Entity entities[2] = {
     {.position = {10.0f, 0.0f, -5.0f},
-     .rotation = {0.0f, 0.0f, -5.0f},
-     .scale = 1.0f,
+     .rotation = {0.0f, 0.0f, 0.0f},
+     .scale = 5.0f,
      .update = &move_entity,
      .mesh = basic_mesh
     },
     {.position = {0.0f, 0.0f, -5.0f},
      .rotation = {0.0f, 0.0f, 10.0f},
-     .scale = 1.0f,
+     .scale = 64.0f,
      .update = &rotate_entity,
      .mesh = basic_mesh
      }};
 
 void renderGame()
 {
-    nuDebConClear(NU_DEB_CON_WINDOW0);
-    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 1);
-    nuDebConPrintf(NU_DEB_CON_WINDOW0, "X: %d", getStickX());
-    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 2);
-    nuDebConPrintf(NU_DEB_CON_WINDOW0, "X: %d", getStickY());
-
-    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 3);
-    if (isAPressed()) {
-        nuDebConPrintf(NU_DEB_CON_WINDOW0, "A");
-    }else {
-        nuDebConPrintf(NU_DEB_CON_WINDOW0, "no A");
-    }
-
-    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 4);
-    if (isBPressed()) {
-        nuDebConPrintf(NU_DEB_CON_WINDOW0, "B");
-    }else {
-        nuDebConPrintf(NU_DEB_CON_WINDOW0, "no B");
-    }
-
     for (int i = 0; i < 2; i++)
     {
         draw_entity(&entities[i], &glistp);

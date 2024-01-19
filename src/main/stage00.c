@@ -19,7 +19,6 @@ void initStage00(void)
 void makeDL00(void)
 {
   Camera *camerap;
-  char conbuf[20];
 
   /* Specify the display list buffer */
   camerap = &gfx_camera[gfx_gtask_no];

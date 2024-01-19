@@ -15,11 +15,11 @@ void draw_entity(Entity *entity, Gfx **glistp)
     gSPDisplayList((*glistp)++, entity->mesh);
 }
 
-Vtx quad_vtx[] = {
-    {{{-64, 64, -5},  0, {0, 0}, {0, 0xFF, 0, 0xFF}}},
-    {{{ 64, 64, -5},  0, {0, 0}, {0, 0,    0, 0xff}}},
-    {{{ 64, -64, -5}, 0, {0, 0}, {0, 0, 0xff, 0xff}}},
-    {{{-64, -64, -5}, 0, {0, 0}, {0xff, 0, 0, 0xff}}},
+static Vtx quad_vtx[] = {
+    {{{-1,  1, 0},  0, {0, 0}, {0,    0xff, 0,    0xff}}},
+    {{{ 1,  1, 0},  0, {0, 0}, {0,    0,    0,    0xff}}},
+    {{{ 1, -1, 0},  0, {0, 0}, {0,    0,    0xff, 0xff}}},
+    {{{-1, -1, 0},  0, {0, 0}, {0xff, 0,    0,    0xff}}},
 };
 
 Gfx basic_mesh[] = {

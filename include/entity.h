@@ -15,7 +15,6 @@ typedef struct Entity
     void (*update)(struct Entity *);
 } Entity;
 
-extern Vtx quad_vtx[];
 extern Gfx basic_mesh[];
 
 void draw_entity(Entity*, Gfx**);
