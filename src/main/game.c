@@ -1,11 +1,9 @@
 #include "game/game.h"
 
-#include "graphic.h"
-#include "entity.h"
-
 static void rotate_entity(Entity *entity)
 {
-    entity->rotation.z += 0.1f;
+    static Vector3f rot = {0, 0, 0.1f};
+    entity->rotation = Vector3f_add_vector(entity->rotation, rot);
 }
 
 static void move_entity(Entity *entity)
@@ -29,6 +27,26 @@ static Entity entities[2] = {
 
 void renderGame()
 {
+    nuDebConClear(NU_DEB_CON_WINDOW0);
+    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 1);
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "X: %d", getStickX());
+    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 2);
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "X: %d", getStickY());
+
+    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 3);
+    if (isAPressed()) {
+        nuDebConPrintf(NU_DEB_CON_WINDOW0, "A");
+    }else {
+        nuDebConPrintf(NU_DEB_CON_WINDOW0, "no A");
+    }
+
+    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 4);
+    if (isBPressed()) {
+        nuDebConPrintf(NU_DEB_CON_WINDOW0, "B");
+    }else {
+        nuDebConPrintf(NU_DEB_CON_WINDOW0, "no B");
+    }
+
     for (int i = 0; i < 2; i++)
     {
         draw_entity(&entities[i], &glistp);
@@ -37,6 +55,7 @@ void renderGame()
 
 void updateGame()
 {
+    nuContDataGetEx(inputData, 0);
     for (int i = 0; i < 2; i++)
     {
         if (entities[i].update != NULL)

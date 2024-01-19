@@ -62,7 +62,7 @@ INCLUDE_DIRS += /usr/include/n64 /usr/include/n64/PR /usr/include/n64/nusys incl
 C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
 DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
 
-CFLAGS = -G 0 -O2 -g -mabi=32 -ffreestanding -mfix4300 $(DEF_INC_CFLAGS)
+CFLAGS = -G 0 -O0 -g3 -mabi=32 -ffreestanding -mfix4300 $(DEF_INC_CFLAGS) -Wall -Wextra
 ASFLAGS     := -march=vr4300 -mabi=32 $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
 
 # C preprocessor flags
