@@ -6,10 +6,12 @@ Arabiki64.
 https://github.com/buu342/Blender-Sausage64
 ***************************************************************/
 
+
 #include "sausage64.h"
 #ifdef LIBDRAGON
     #include <math.h>
 #endif
+#include <PR/gbi.h>
 
 
 /*********************************
@@ -266,6 +268,7 @@ void sausage64_initmodel(s64ModelHelper* mdl, s64ModelData* mdldata, GLuint* glb
     if (mdldata->animcount > 0)
     {
         s64Animation* animdata = &mdldata->anims[0];
+        mdl->prevanim = animdata;
         mdl->curanim = animdata;
         mdl->curanimlen = animdata->keyframes[animdata->keyframecount-1].framenumber;
     }
@@ -523,6 +526,46 @@ void sausage64_set_anim(s64ModelHelper* mdl, u16 anim)
     mdl->animtick = 0;
     if (animdata->keyframecount > 0)
         sausage64_update_anim(mdl);
+}
+
+
+/*==============================
+    sausage64_set_anim_tick
+    Sets an animation on the model starting in a given tick. 
+    Does not perform error checking if an invalid animation is given.
+    @param The model helper pointer
+    @param The ANIMATION_* macro to set
+==============================*/
+
+void sausage64_set_anim_tick(s64ModelHelper* mdl, u16 anim, float animtick)
+{   
+    u32 curkeyframe = 0;
+
+    s64Animation* animdata = &mdl->mdldata->anims[anim];
+    mdl->curanim = animdata;
+    mdl->curanimlen = animdata->keyframes[animdata->keyframecount-1].framenumber;
+    
+    // calculate keyframe at given tick
+    while (animtick >= animdata->keyframes[curkeyframe].framenumber){
+        curkeyframe ++;
+    }
+    
+    mdl->curkeyframe = curkeyframe;
+    mdl->animtick = animtick;
+    if (animdata->keyframecount > 0)
+        sausage64_update_anim(mdl);
+}
+
+
+/*==============================
+    sausage64_get_curranim
+    Returns the index of the current animation.
+    @param The model helper pointer
+==============================*/
+
+u32 sausage64_get_curranim(s64ModelHelper* mdl)
+{
+    return mdl->curanim - &mdl->mdldata->anims[0];
 }
 
 
@@ -788,7 +831,7 @@ void sausage64_set_anim(s64ModelHelper* mdl, u16 anim)
 #ifndef LIBDRAGON
     void sausage64_drawmodel(Gfx** glistp, s64ModelHelper* mdl)
     {
-        u16 i;
+        u16 i = 0;
         const s64ModelData* mdata = mdl->mdldata;
         const u16 mcount = mdata->meshcount;
         const s64Animation* anim = mdl->curanim;
@@ -796,31 +839,71 @@ void sausage64_set_anim(s64ModelHelper* mdl, u16 anim)
         // If we have a valid animation
         if (anim != NULL)
         {
-            const s64KeyFrame* ckframe = &anim->keyframes[mdl->curkeyframe];
-            const s64KeyFrame* nkframe = &anim->keyframes[(mdl->curkeyframe+1)%anim->keyframecount];
-            f32 l = 0;
-        
-            // Prevent division by zero when calculating the lerp amount
-            if (nkframe->framenumber - ckframe->framenumber != 0)
-                l = ((f32)(mdl->animtick - ckframe->framenumber))/((f32)(nkframe->framenumber - ckframe->framenumber));
-            
-            // Iterate through each mesh
-            for (i=0; i<mcount; i++)
-            {
-                const s64FrameData* cfdata = &ckframe->framedata[i];
-                const s64FrameData* nfdata = &nkframe->framedata[i];
-            
-                // Call the pre draw function
-                if (mdl->predraw != NULL)
-                    mdl->predraw(i);
+            //mdl->prevanim = mdl->curanim;
+
+            //if (mdl->prevanim == mdl->curanim){
+
+                const s64KeyFrame* ckframe = &anim->keyframes[mdl->curkeyframe];
+                const s64KeyFrame* nkframe = &anim->keyframes[(mdl->curkeyframe+1)%anim->keyframecount];
+                f32 l = 0;
+
+                // Prevent division by zero when calculating the lerp amount
+                if (nkframe->framenumber - ckframe->framenumber != 0)
+                    l = ((f32)(mdl->animtick - ckframe->framenumber))/((f32)(nkframe->framenumber - ckframe->framenumber));
+
+                // Iterate through each mesh
+                for (i=0; i<mcount; i++)
+                {
+                    const s64FrameData* cfdata = &ckframe->framedata[i];
+                    const s64FrameData* nfdata = &nkframe->framedata[i];
+
+                    // Call the pre draw function
+                    if (mdl->predraw != NULL)
+                        mdl->predraw(i);
+
+                    // Draw this part of the model with animations
+                    sausage64_drawpart(glistp, &mdata->meshes[i], cfdata, nfdata, mdl->interpolate, l, &mdl->matrix[i]);
+
+                    // Call the post draw function
+                    if (mdl->postdraw != NULL)
+                        mdl->postdraw(i);
+                }
+            //}  
+            /*
+            else if (mdl->prevanim != mdl->curanim){
                 
-                // Draw this part of the model with animations
-                sausage64_drawpart(glistp, &mdata->meshes[i], cfdata, nfdata, mdl->interpolate, l, &mdl->matrix[i]);
-            
-                // Call the post draw function
-                if (mdl->postdraw != NULL)
-                    mdl->postdraw(i);
-            }
+                const s64KeyFrame* ckframe = &mdl->prevanim->keyframes[mdl->transition_previous_keyframe];
+                const s64KeyFrame* nkframe = &anim->keyframes[0];
+                f32 l = 0;
+
+                //
+                l = 1 / mdl->transition_tick_count;
+                mdl->transition_tick_count-- ;
+
+                // Iterate through each mesh
+                for (i=0; i<mcount; i++)
+                {
+                    const s64FrameData* cfdata = &ckframe->framedata[i];
+                    const s64FrameData* nfdata = &nkframe->framedata[i];
+
+                    // Call the pre draw function
+                    if (mdl->predraw != NULL)
+                        mdl->predraw(i);
+
+                    // Draw this part of the model with animations
+                    sausage64_drawpart(glistp, &mdata->meshes[i], cfdata, nfdata, mdl->interpolate, l, &mdl->matrix[i]);
+
+                    // Call the post draw function
+                    if (mdl->postdraw != NULL)
+                        mdl->postdraw(i);
+                }
+
+                if (mdl->transition_tick_count == 1) mdl->prevanim = mdl->curanim;
+            } 
+            */
+
+
+
         }
         else
         {

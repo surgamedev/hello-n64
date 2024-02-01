@@ -4,6 +4,7 @@
 #	USE THE OTHER makefile!!!!!!!!!!!!!!!!!!!!!!!!!!       #
 ################################################################
 
+
 ################################################################
 #                    Code files and ROM name                   #
 ################################################################
@@ -99,7 +100,7 @@ ${BUILDDIR}/asm/%.o: asm/%.s | ${BUILDDIR}
 	$(AS) -Wa,-Iasm -o $@ $<
 
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -ggdb -o $@ $<
 
 $(CODESEGMENT):	$(CODEOBJECTS)
 	$(LD) -o $(CODESEGMENT) -r $(CODEOBJECTS) $(LDFLAGS)

@@ -6,7 +6,7 @@ Program entrypoint.
 
 #include <nusys.h>
 #include "config.h"
-#include "scene.h"
+#include "main.h"
 #include "debug.h"
 
 
@@ -18,7 +18,7 @@ static void callback_prenmi();
 static void callback_vsync(int tasksleft);
 
 // Controller data
-NUContData contdata[1];
+NUContData contdata[2];
 
 
 /*==============================
@@ -47,7 +47,7 @@ void mainproc(void)
     // Initialize the controller
     nuContInit();
         
-    // Initialize stage 0
+    // Initialize the scene
     init_scene();
         
     // Set callback functions for reset and graphics
@@ -72,7 +72,7 @@ static void callback_vsync(int tasksleft)
     // Update the stage, then draw it when the RDP is ready
     update_scene();
     if (tasksleft < 1)
-        draw_frame();
+        render_frame();
 }
 
 

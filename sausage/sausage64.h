@@ -1,6 +1,7 @@
 #ifndef SAUSAGE64_H
 #define SAUSAGE64_H
 
+
     // UNCOMMENT THE #DEFINE IF USING LIBDRAGON
     //#define LIBDRAGON
 
@@ -130,6 +131,12 @@
     typedef struct {
         u8 interpolate;
         u8 loop;
+        
+        s64Animation* prevanim;
+        u32 transition_previous_keyframe;
+        u32 transition_target_keyframe;
+        u32 transition_tick_count;
+
         s64Animation* curanim;
         u32 curanimlen;
         float animtick;
@@ -186,6 +193,24 @@
     ==============================*/
     
     extern void sausage64_set_anim(s64ModelHelper* mdl, u16 anim);
+
+    /*==============================
+        sausage64_set_anim_tick
+        Sets an animation on the model given a tick. 
+        Does not perform error checking if an invalid animation is given.
+        @param The model helper pointer
+        @param The ANIMATION_* macro to set
+    ==============================*/
+
+    extern void sausage64_set_anim_tick(s64ModelHelper* mdl, u16 anim, float animtick);
+
+    /*==============================
+        sausage64_get_curranim
+        Returns the index of the current animation.
+        @param The model helper pointer
+    ==============================*/
+    
+    u32 sausage64_get_curranim(s64ModelHelper* mdl);
     
     
     /*==============================

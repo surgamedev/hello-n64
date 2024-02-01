@@ -1,6 +1,7 @@
 #ifndef UNFLEX_CONFIG_H
 #define UNFLEX_CONFIG_H
 
+
     /*********************************
            Configuration Macros
     *********************************/
@@ -32,6 +33,6 @@
     extern Gfx rspinit_dl[];
     extern Gfx rdpinit_dl[];
     
-    extern NUContData contdata[1];
+    extern NUContData contdata[2];
     
 #endif

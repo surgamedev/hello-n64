@@ -79,10 +79,7 @@ SECTIONS
       build/codesegment.o(.bss*);
       . = ALIGN(0x8);
    }
+   /* Discard everything not specifically mentioned above. 
+   */
    END_NOLOAD(code)
-   /* Discard everything not specifically mentioned above. */
-   /DISCARD/ :
-   {
-      *(*);
-   }
 }

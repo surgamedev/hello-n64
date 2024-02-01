@@ -7,8 +7,11 @@ here are all the input related functions */
 
 // function prototypes
 
-void move_viewport_stick(Viewport *viewport, NUContData contdata[1]);
-void move_entity_stick(Entity *entity, Viewport viewport, NUContData contdata[1]);
+int input(u32 input);
+void move_viewport_stick(Viewport *viewport, NUContData *contdata);
+void move_viewport_c_buttons(Viewport *viewport, NUContData *contdata, TimeData timedata);
+void move_entity_stick(Entity *entity, Viewport viewport, NUContData *contdata);
+void set_entity_actions(Entity *entity, NUContData *contdata, TimeData timedata);
 
 
 
@@ -16,73 +19,115 @@ void move_entity_stick(Entity *entity, Viewport viewport, NUContData contdata[1]
 
 
 
+/* input
+ auxiliary function for 8 directional movement*/
+
+int input(u32 input){
+    if (input == 0) {return 0;}
+    else {return 1;}
+}
+
+
 /* move_viewport_stick
 changes the viewport variables depending on controller input*/
 
 void move_viewport_stick(Viewport *viewport, NUContData *contdata)
 {
-    if (fabs(contdata->stick_x) < 7) contdata->stick_x = 0;
-    if (fabs(contdata->stick_y) < 7) contdata->stick_y = 0;
+    int deadzone = 8;
+    float stick_x = 0;
+    float stick_y = 0;
 
-    viewport->angle_around_target += contdata->stick_x / 20;
-    viewport->pitch += contdata->stick_y / 20;
+    if (fabs(contdata->stick_x) >= deadzone || fabs(contdata->stick_y) >= deadzone) {
+        stick_x = contdata->stick_x;
+        stick_y = contdata->stick_y;
+    }
 
-    if (viewport->angle_around_target > 360) {viewport->angle_around_target  = viewport->angle_around_target - 360;}
-    if (viewport->angle_around_target < 0) {viewport->angle_around_target  = viewport->angle_around_target + 360;}
+    if (stick_x == 0 && stick_y == 0) {
+        viewport->rotational_target_speed[0] = 0;
+        viewport->rotational_target_speed[1] = 0;
+    }
+    
+    else if (stick_x != 0 || stick_y != 0) {
+        viewport->rotational_target_speed[0] = stick_x;
+        viewport->rotational_target_speed[1] = stick_y;
+    }
+    
+    if (contdata->button & Z_TRIG) set_viewport_state (viewport, THIRD_PERSON_SHOOTER_AIMING);
+    else set_viewport_state (viewport, THIRD_PERSON_SHOOTER);
+}
 
-    if (viewport->pitch > 85) viewport->pitch = 85;
-    if (viewport->pitch < -85) viewport->pitch = -85;
+
+void move_viewport_c_buttons(Viewport *viewport, NUContData *contdata, TimeData timedata)
+{
+    float stick_x = 0;
+    float stick_y = 0;
+
+    if ((contdata->button & R_CBUTTONS) || (contdata->button & L_CBUTTONS) || (contdata->button & U_CBUTTONS) || (contdata->button & D_CBUTTONS)){
+        
+        stick_x = input(contdata->button & R_CBUTTONS) - input(contdata->button & L_CBUTTONS);
+        stick_y = input(contdata->button & U_CBUTTONS) - input(contdata->button & D_CBUTTONS);
+    }
+
+    if (stick_x == 0) viewport->rotational_target_speed[0] = 0; 
+    else viewport->rotational_target_speed[0] = stick_x * viewport->settings.rotational_max_speed[0];
+
+	if (stick_y == 0) viewport->rotational_target_speed[1] = 0; 
+    else viewport->rotational_target_speed[1] = stick_y * viewport->settings.rotational_max_speed[1];
+
+    if (contdata->button & Z_TRIG) set_viewport_state (viewport, THIRD_PERSON_SHOOTER_AIMING);
+    else set_viewport_state (viewport, THIRD_PERSON_SHOOTER);
+}
+
+
+void set_entity_actions(Entity *entity, NUContData *contdata, TimeData timedata)
+{    
+    if (contdata->trigger & A_BUTTON && entity->state != ROLL && entity->state != JUMP) {
+        
+        entity->input.hold = 1; 
+        set_entity_state(entity, JUMP);
+    }
+
+    if (contdata->button & A_BUTTON && entity->state == JUMP) {
+
+        entity->input.hold = 1; 
+        entity->input.time_held += timedata.frame_duration;
+    }
+    else {
+        
+        entity->input.hold = 0;    
+    }
+
+    if (contdata->trigger & B_BUTTON && entity->state != JUMP) set_entity_state(entity, ROLL);
 }
 
 
 /*move_entity_stick
-changes the entity position variables depending on controller input */
+changes the entity state and target yaw depending on controller input */
 
 void move_entity_stick(Entity *entity, Viewport viewport, NUContData *contdata)
 {
-    float input_amount;
+    int deadzone = 8;
+    float stick_total = 0; 
 
-	if (fabs(contdata->stick_x) < 9) {contdata->stick_x = 0;}
-	if (fabs(contdata->stick_y) < 9) {contdata->stick_y = 0;}
-
-
-    if (fabs(contdata->stick_x) > 0 || fabs(contdata->stick_y) > 0) {
-        
-        input_amount = 1 / qi_sqrt(contdata->stick_x * contdata->stick_x +  contdata->stick_y * contdata->stick_y);
-        entity->target_yaw = deg(atan2(contdata->stick_x, -contdata->stick_y) - rad(viewport.angle_around_target));
-    }    
-    
-    entity->input_amount = input_amount; //debug data collecting
-    
-    if (input_amount == 0){
-        
-        if  (fabs(entity->speed[0]) < 1 && fabs(entity->speed[1]) < 1){
-            entity->speed[0] = 0;
-            entity->speed[1] = 0;
-        }
-
-        entity->acceleration[0] = 9 * (0 - entity->speed[0]);
-        entity->acceleration[1] = 9 * (0 - entity->speed[1]);
+    if (fabs(contdata->stick_x) >= deadzone || fabs(contdata->stick_y) >= deadzone) {
+        stick_total = calculate_diagonal(contdata->stick_x ,contdata->stick_y);
+        entity->target_yaw = deg(atan2(contdata->stick_x, -contdata->stick_y) - rad(viewport.angle_around_entity - (viewport.offset_angle / 2)));
     }
 
-    else if (input_amount > 0 && input_amount <= 60){
-
-        entity->target_speed[0] = 80 * sinf(rad(entity->target_yaw));
-        entity->target_speed[1] = 80 * -cosf(rad(entity->target_yaw));
-
-        entity->acceleration[0] = 4 * (entity->target_speed[0] - entity->speed[0]);
-        entity->acceleration[1] = 4 * (entity->target_speed[1] - entity->speed[1]);
-    }
-    else if (input_amount > 60){
-
-        entity->target_speed[0] = 200 * sinf(rad(entity->target_yaw));
-        entity->target_speed[1] = 200 * -cosf(rad(entity->target_yaw));
-
-        entity->acceleration[0] = 4 * (entity->target_speed[0] - entity->speed[0]);
-        entity->acceleration[1] = 4 * (entity->target_speed[1] - entity->speed[1]);
-    }
+    //debug data collecting
+    entity->input.stick_total = stick_total;
     
-    if (entity->speed[0] != 0 || entity->speed[1] != 0) entity->yaw = deg(atan2(entity->speed[0], -entity->speed[1]));
+    if (stick_total == 0 && entity->state != ROLL && entity->state != JUMP){
+        set_entity_state(entity, STAND_IDLE);
+    }
+
+    else if (stick_total > 0 && stick_total <= 64 && entity->state != ROLL && entity->state != JUMP){
+        set_entity_state(entity, WALKING);
+    }
+
+    else if (stick_total > 64 && entity->state != ROLL && entity->state != JUMP){
+        set_entity_state(entity, RUNNING);
+    }
 }
 
 
