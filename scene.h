@@ -37,8 +37,7 @@ typedef struct {
 
 typedef struct {
 
-	Mtx	position_mtx;
-	Mtx	rotation_mtx[3];
+	Mtx	transform;
 	Mtx scale_mtx;
 
 	float scale[3];

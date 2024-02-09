@@ -74,9 +74,7 @@ typedef struct {
 
 typedef struct {
 
-	Mtx	position_mtx;
-	Mtx	rotation_mtx[3];
-	Mtx scale_mtx;
+	Mtx	transform;
 
 	EntityState previous_state;
 	EntityState state;
@@ -88,8 +86,10 @@ typedef struct {
 	float previous_position[3];
 	float position[3];
 	
+	float pitch;
+    float roll;
 	float target_yaw;
-	float yaw;
+    float yaw;
     
 	float acceleration[3];
 	float target_speed[3];
@@ -146,6 +146,11 @@ void set_entity_position(Entity *entity, TimeData time_data)
 		entity->directional_speed = calculate_diagonal(entity->speed[0], entity->speed[1]);
 	}
 
+	if (fabs(entity->speed[0]) < 1 && fabs(entity->speed[1]) < 1){
+		entity->speed[0] = 0;
+		entity->speed[1] = 0;
+	}
+	
     entity->position[0] += entity->speed[0] * time_data.frame_duration;
     entity->position[1] += entity->speed[1] * time_data.frame_duration;
     entity->position[2] += entity->speed[2] * time_data.frame_duration;

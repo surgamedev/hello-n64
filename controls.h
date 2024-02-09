@@ -8,7 +8,7 @@ here are all the input related functions */
 // function prototypes
 
 int input(u32 input);
-void move_viewport_stick(Viewport *viewport, NUContData *contdata);
+void move_viewport_stick(Viewport *viewport, Entity entity, NUContData *contdata);
 void move_viewport_c_buttons(Viewport *viewport, NUContData *contdata, TimeData timedata);
 void move_entity_stick(Entity *entity, Viewport viewport, NUContData *contdata);
 void set_entity_actions(Entity *entity, NUContData *contdata, TimeData timedata);
@@ -31,7 +31,7 @@ int input(u32 input){
 /* move_viewport_stick
 changes the viewport variables depending on controller input*/
 
-void move_viewport_stick(Viewport *viewport, NUContData *contdata)
+void move_viewport_stick(Viewport *viewport, Entity entity, NUContData *contdata)
 {
     int deadzone = 8;
     float stick_x = 0;
@@ -52,7 +52,7 @@ void move_viewport_stick(Viewport *viewport, NUContData *contdata)
         viewport->rotational_target_speed[1] = stick_y;
     }
     
-    if (contdata->button & Z_TRIG) set_viewport_state (viewport, THIRD_PERSON_SHOOTER_AIMING);
+    if (contdata->button & Z_TRIG && entity.state != ROLL) set_viewport_state (viewport, THIRD_PERSON_SHOOTER_AIMING);
     else set_viewport_state (viewport, THIRD_PERSON_SHOOTER);
 }
 

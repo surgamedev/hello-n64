@@ -6,6 +6,7 @@ handles the demo scene */
 #include <nusys.h>
 #include <string.h> // Needed for CrashSDK compatibility
 #include <math.h>
+#include <float.h>
 
 #include "config.h"
 #include "helper.h"
@@ -26,7 +27,7 @@ handles the demo scene */
 #include "entitystates.h"
 #include "viewportstates.h"
 #include "controls.h"
-#include "collision.h"
+#include "collision_detection.h"
 #include "collision_response.h"
 
 
@@ -59,7 +60,7 @@ Viewport viewport = {
     angle_around_entity: 30,
     offset_angle: 15,
     pitch: 10,
-    height: 90,
+    height: 70,
     
     settings: {
 
@@ -73,7 +74,7 @@ Viewport viewport = {
         target_zoom: 250,
         target_zoom_aim: 130,
 
-	    offset_acceleration_rate: 6,
+	    offset_acceleration_rate: 12,
         offset_deceleration_rate: 40,
 	    offset_max_speed: 40,
 
@@ -140,9 +141,9 @@ Scenery axis_cube[AXIS_COUNT] = {
     {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: {  100, -100,   0}, rotation: {0,   0,  90}},
     {model:        gfx_axis, scale: {1 ,1 ,1}, position: {  100,  100,   0}, rotation: {0,   0, 180}},
     {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: { -100,  100,   0}, rotation: {0,   0, 270}},
-    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: { -100, -100,  50}, rotation: {0, 180,  90}},
+    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: { -100, -100,  50}, rotation: {0, 180, 270}},
     {model:        gfx_axis, scale: {1 ,1 ,1}, position: {  100, -100,  50}, rotation: {0, 180,   0}},
-    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: {  100,  100,  50}, rotation: {0, 180, 270}},
+    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: {  100,  100,  50}, rotation: {0, 180,  90}},
     {model:        gfx_axis, scale: {1 ,1 ,1}, position: { -100,  100,  50}, rotation: {0, 180, 180}},
     
     
@@ -163,7 +164,7 @@ Scenery cube = {
 
 AABB axis_cube_bounding_box = {
 
-    min: {-100, -100, 0,},
+    min: {-100, -100, -10,},
     max: {100, 100, 50,},
 };
 
@@ -296,18 +297,17 @@ handles the system functions that enters an entity's position and rotation value
 
 void set_entity (Entity *entity)
 {
-    guTranslate(&entity->position_mtx, entity->position[0], entity->position[1], entity->position[2]);
-    guRotate(&entity->rotation_mtx[2], entity->yaw, 0, 0, 1);
-    guScale(&entity->scale_mtx, entity->scale, entity->scale, entity->scale);
+    guPosition(
+        &entity->transform,
+        entity->pitch, entity->roll, entity->yaw,
+        entity->scale,
+        entity->position[0], entity->position[1], entity->position[2]
+    );
 
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->position_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->rotation_mtx[2]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->scale_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->transform), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
 
     sausage64_drawmodel(&glistp, &entity->model);
 
-    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
-    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
     gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
 }
 
@@ -317,25 +317,23 @@ handles the system functions that enters a scenery object's position and rotatio
 
 void set_scenery (Scenery *scenery)
 {
-    guTranslate(&scenery->position_mtx, scenery->position[0], scenery->position[1], scenery->position[2]);
-    guRotate(&scenery->rotation_mtx[0], scenery->rotation[0], 1, 0, 0);
-    guRotate(&scenery->rotation_mtx[1], scenery->rotation[1], 0, 1, 0);
-    guRotate(&scenery->rotation_mtx[2], scenery->rotation[2], 0, 0, 1);
+
+    guPosition(
+        &scenery->transform,
+        scenery->rotation[0], scenery->rotation[1], scenery->rotation[2],
+        1,
+        scenery->position[0], scenery->position[1], scenery->position[2]
+    );
+    
     guScale(&scenery->scale_mtx, scenery->scale[0], scenery->scale[1], scenery->scale[2]);
 
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->position_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->rotation_mtx[0]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->rotation_mtx[1]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->rotation_mtx[2]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->transform), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->scale_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
 
     gSPDisplayList(glistp++, scenery->model);
 
     gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
     gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
-    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
-    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
-     gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
 }
 
 
@@ -389,9 +387,32 @@ void print_debug_data()
     
     nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 2);
     nuDebConPrintf(NU_DEB_CON_WINDOW0, "FPS  %d", (int) timedata.FPS);
- 
+    
     nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 3);
-    nuDebConPrintf(NU_DEB_CON_WINDOW0, "height  %d", (int)player.position[2]);
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "position: %d, %d, %d", (int)player.position[0], (int)player.position[1], (int)player.position[2]);
+
+    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 4);
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "normal: %d, %d, %d", (int)(player.collision.normal[0] * 1000), (int)(player.collision.normal[1] * 1000), (int)(player.collision.normal[2] * 1000));
+
+    /*
+    float hit_point[3];
+
+    if(collision_ray_aabb(viewport.position, viewport.target, axis_cube_bounding_box, hit_point)) {
+
+        nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 2);
+        nuDebConPrintf(NU_DEB_CON_WINDOW0, "ray hit point %d, %d, %d", (int)(hit_point[0]), (int)(hit_point[1]), (int)(hit_point[2]) );
+    }
+
+     nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 4);
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "collision normal: %d, %d, %d", (int)(player.collision.normal[0] * 1000 ), (int)(player.collision.normal[1] * 1000 ), (int)(player.collision.normal[2] * 1000 ));
+
+    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 3);
+    if(player.state == STAND_IDLE) nuDebConPrintf(NU_DEB_CON_WINDOW0, "STAND IDLE");
+    if(player.state == WALKING) nuDebConPrintf(NU_DEB_CON_WINDOW0, "WALKING");
+    if(player.state == RUNNING) nuDebConPrintf(NU_DEB_CON_WINDOW0, "RUNNING");
+    if(player.state == ROLL) nuDebConPrintf(NU_DEB_CON_WINDOW0, "ROLL");
+    if(player.state == JUMP) nuDebConPrintf(NU_DEB_CON_WINDOW0, "JUMP");
+
 
     if(collision_capsule_aabb(&player, player_bounding_box, axis_cube_bounding_box)) {
         get_collision_normal_aabb(&player, axis_cube_bounding_box);
@@ -405,17 +426,6 @@ void print_debug_data()
         nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 5);
         nuDebConPrintf(NU_DEB_CON_WINDOW0, "CAPSULE OBB");
     }
-
-    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 4);
-    nuDebConPrintf(NU_DEB_CON_WINDOW0, "collision normal: %d, %d, %d", (int)(player.collision.normal[0] * 1000 ), (int)(player.collision.normal[1] * 1000 ), (int)(player.collision.normal[2] * 1000 ));
-       
-    /*
-    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 3);
-    if(player.state == STAND_IDLE) nuDebConPrintf(NU_DEB_CON_WINDOW0, "STAND IDLE");
-    if(player.state == WALKING) nuDebConPrintf(NU_DEB_CON_WINDOW0, "WALKING");
-    if(player.state == RUNNING) nuDebConPrintf(NU_DEB_CON_WINDOW0, "RUNNING");
-    if(player.state == ROLL) nuDebConPrintf(NU_DEB_CON_WINDOW0, "ROLL");
-    if(player.state == JUMP) nuDebConPrintf(NU_DEB_CON_WINDOW0, "JUMP");
     */
 }
 
@@ -466,15 +476,15 @@ void update_scene()
 
     set_entity_state(&player, player.state);  
 
-    //move_viewport_stick(&viewport, &contdata[1]);
-    move_viewport_c_buttons(&viewport, &contdata[0], timedata);
+    move_viewport_stick(&viewport, player, &contdata[1]);
+    //move_viewport_c_buttons(&viewport, &contdata[0], timedata);
 
     set_viewport_position(&viewport, player, timedata);
 
     set_capsule(&player_bounding_box, player, 20);
     //set_sphere(&player_bounding_box, player);
 
-    set_collissions(&player, player_bounding_box, axis_cube_bounding_box, cube_object_box);
+    set_collission_response(&player, player_bounding_box, axis_cube_bounding_box, cube_object_box);
     //rotate_cube();
 }
 
