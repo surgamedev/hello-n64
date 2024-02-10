@@ -10,6 +10,14 @@ here are all the structures and functions prototypes that involve the collision 
 
 typedef struct {
 
+    float normal[3];
+    float point[3];
+    float displacement; 
+
+} Plane;
+
+typedef struct {
+
     float center[3];
     float radius;
     
@@ -33,6 +41,8 @@ typedef struct {
     float max[3];
     float center[3];
 
+    Plane plane;
+
 } AABB;
 
 
@@ -51,16 +61,9 @@ typedef struct {
     float size[3];
     float rotation[3];
 
+    Plane plane;
+
 } OBB;
-
-
-typedef struct {
-
-    float normal[3];
-    float point[3];
-    float displacement; 
-
-} Plane;
 
 
 // function prototypes
@@ -101,6 +104,17 @@ int collision_capsule_aabb(Entity* entity, Capsule capsule, AABB aabb);
 int collision_capsule_obb(Entity* entity, Capsule capsule, OBB obb);
 int collision_ray_aabb(float origin[3], float target[3], AABB aabb, float* hit_point);
 
+
+
+/* init_point
+sets initial values to a destinatary point */
+
+void init_point(float* dest, float x, float y, float z) 
+{
+    dest[0] = x;
+    dest[1] = y;
+    dest[2] = z;
+}
 
 
 /* set_point
@@ -186,6 +200,17 @@ void point_obb_to_global_space(OBB obb, float local_point[3], float global_point
 }
 
 
+/* null_vector
+sets a vector given 2 points */
+
+void null_vector(float* vector)
+{
+    vector[0] = 0;
+    vector[1] = 0;
+    vector[2] = 0; 
+}
+
+
 /* set_vector
 sets a vector given 2 points */
 
@@ -195,6 +220,7 @@ void set_vector(float *vector, float *a, float *b)
     vector[1] = b[1] - a[1];
     vector[2] = b[2] - a[2]; 
 }
+
 
 /* subtract_vector
 sets a vector given 2 points */
