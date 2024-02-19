@@ -11,8 +11,8 @@ typedef struct{
 
 	OSTime currrent_frame;
 	OSTime last_frame;
-	float frame_duration;
-	f32 FPS;
+	float frame_time;
+	f32 frame_rate;
 
 }TimeData;
 
@@ -50,15 +50,15 @@ float cycles_to_sec(OSTime cycles)
 
 
 /* ime_management
-calculates FPS and frame_duration variable */
+calculates frame_rate and frame_time variable */
 
 void time_management(TimeData *time)
 {
     time->currrent_frame = osGetTime();
 
-    time->frame_duration = cycles_to_sec(time->currrent_frame - time->last_frame);
+    time->frame_time = cycles_to_sec(time->currrent_frame - time->last_frame);
 
-    time->FPS = 1 / time->frame_duration;
+    time->frame_rate = 1 / time->frame_time;
 
     time->last_frame = time->currrent_frame;
 }

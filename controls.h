@@ -81,23 +81,24 @@ void move_viewport_c_buttons(Viewport *viewport, NUContData *contdata, TimeData 
 
 void set_entity_actions(Entity *entity, NUContData *contdata, TimeData timedata)
 {    
-    if (contdata->trigger & A_BUTTON && entity->state != ROLL && entity->state != JUMP) {
+    if (contdata->trigger & A_BUTTON && entity->state != ROLL && entity->state != JUMP && entity->state != FALL) {
         
-        entity->input.hold = 1; 
+        entity->input.released = 0;
         set_entity_state(entity, JUMP);
     }
 
     if (contdata->button & A_BUTTON && entity->state == JUMP) {
 
         entity->input.hold = 1; 
-        entity->input.time_held += timedata.frame_duration;
+        entity->input.time_held += timedata.frame_time;
     }
     else {
-        
+
+        entity->input.released = 1;
         entity->input.hold = 0;    
     }
 
-    if (contdata->trigger & B_BUTTON && entity->state != JUMP) set_entity_state(entity, ROLL);
+    if (contdata->trigger & B_BUTTON && entity->state != JUMP && entity->state != FALL) set_entity_state(entity, ROLL);
 }
 
 
@@ -117,17 +118,22 @@ void move_entity_stick(Entity *entity, Viewport viewport, NUContData *contdata)
     //debug data collecting
     entity->input.stick_total = stick_total;
     
-    if (stick_total == 0 && entity->state != ROLL && entity->state != JUMP){
+    if (stick_total == 0 && entity->state != ROLL && entity->state != JUMP && entity->state != FALL){
         set_entity_state(entity, STAND_IDLE);
     }
 
-    else if (stick_total > 0 && stick_total <= 64 && entity->state != ROLL && entity->state != JUMP){
+    else if (stick_total > 0 && stick_total <= 64 && entity->state != ROLL && entity->state != JUMP && entity->state != FALL){
         set_entity_state(entity, WALKING);
     }
 
-    else if (stick_total > 64 && entity->state != ROLL && entity->state != JUMP){
+    else if (stick_total > 64 && contdata->button & R_TRIG && entity->state != ROLL && entity->state != JUMP && entity->state != FALL){
+        set_entity_state(entity, SPRINTING);
+    }
+
+    else if (stick_total > 64 && entity->state != ROLL && entity->state != JUMP && entity->state != FALL){
         set_entity_state(entity, RUNNING);
     }
+
 }
 
 

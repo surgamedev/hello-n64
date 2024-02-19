@@ -1,7 +1,6 @@
 /*SCENE.C
 handles the demo scene */
 
-//testing git
 
 #include <nusys.h>
 #include <string.h> // Needed for CrashSDK compatibility
@@ -17,8 +16,14 @@ handles the demo scene */
 
 #include "nickTex.h"
 #include "nickMdl.h"
-#include "shapesMdl.h"
-#include "terrain.h"
+#include "axisMdl.h"
+#include "tiles.h"
+#include "ground.h"
+#include "cube.h"
+
+#define SCENERY_COUNT 4
+#define AABB_COUNT 2
+#define OBB_COUNT 3
 
 #include "math_util.h"
 #include "time.h"
@@ -34,6 +39,7 @@ handles the demo scene */
 // macros
 
 #define USB_BUFFER_SIZE 256
+
 
 
 // function prototypes
@@ -57,9 +63,9 @@ Viewport viewport = {
 
     distance_from_entity: 280,
     target_distance: 600,
-    angle_around_entity: 30,
+    angle_around_entity: 40,
     offset_angle: 15,
-    pitch: 10,
+    pitch: 0,
     height: 70,
     
     settings: {
@@ -94,13 +100,21 @@ LightData light = {
 
 Entity player = {
 
-    scale: 1,
+    scale: {1, 1, 1},
 
-    position: {-300, -500, 0,},
+    position: {-300, -300, 0,},
+
+    grounding_height: 0,
     
     yaw: 150,
 
     framerate: 0.5,
+
+    capsule: {
+        
+        radius: 20,
+        height: 60,
+    },
 
     settings: {
 
@@ -112,14 +126,17 @@ Entity player = {
         jump_acceleration_rate: 40,
         aerial_control_rate: 0.5,
 
-        walk_target_speed: 120,
-        run_target_speed: 260,
-        idle_to_roll_target_speed: 140,
-        walk_to_roll_target_speed: 160,
-        run_to_roll_target_speed: 280,
+        walk_target_speed: 90,
+        run_target_speed: 170,
+        sprint_target_speed: 290,
+        idle_to_roll_target_speed: 120,
+        idle_to_roll_grip_target_speed: 5,
+        walk_to_roll_target_speed: 150,
+        run_to_roll_target_speed: 210,
+        sprint_to_roll_target_speed: 330,
         jump_target_speed: 350, 
 
-        idle_to_roll_change_grip_tick: 20,
+        idle_to_roll_change_grip_tick: 30,
         walk_to_roll_change_grip_tick: 23,
         run_to_roll_change_grip_tick: 20,
 
@@ -133,72 +150,59 @@ Entity player = {
 Mtx playerMtx[MESHCOUNT_nick];
 
 
-#define AXIS_COUNT 8
+Scenery ground = {
 
-Scenery axis_cube[AXIS_COUNT] = {
+    scale: {1, 1, 1},
 
-    {model:        gfx_axis, scale: {1 ,1 ,1}, position: { -100, -100,   0}, rotation: {0,   0,   0}},
-    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: {  100, -100,   0}, rotation: {0,   0,  90}},
-    {model:        gfx_axis, scale: {1 ,1 ,1}, position: {  100,  100,   0}, rotation: {0,   0, 180}},
-    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: { -100,  100,   0}, rotation: {0,   0, 270}},
-    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: { -100, -100,  50}, rotation: {0, 180, 270}},
-    {model:        gfx_axis, scale: {1 ,1 ,1}, position: {  100, -100,  50}, rotation: {0, 180,   0}},
-    {model: gfx_mirror_axis, scale: {1 ,1 ,1}, position: {  100,  100,  50}, rotation: {0, 180,  90}},
-    {model:        gfx_axis, scale: {1 ,1 ,1}, position: { -100,  100,  50}, rotation: {0, 180, 180}},
+    model: gfx_ground,
+
+};
+
+Scenery axis = {
+
+    scale: {1, 1, 1},
+    position: {0, 0, 0},
+    rotation: {0, 0, 0},
+
+    model: gfx_axis,
+};
+
+Scenery scenery[SCENERY_COUNT] = {
+
+    {model: gfx_cube, scale: {1.2, 1.2, 1.2}, position: { 550, -550, 0}, rotation: { 0,   0,   0}},
+
+    {model: gfx_cube, scale: {1.2, 1.2, 1.2}, position: {-550,  550,  120},   rotation: {  45,  35,    0}},
+    {model: gfx_cube, scale: {  6, 1.2, 1.2}, position: {-550, -550,  20},   rotation: {   0,  10,  115}},
+    {model: gfx_cube, scale: {  3,   3,   3}, position: { 650,  650, -120},   rotation: {  0,  0,   35}},
     
-    
+};
+
+AABB aligned_box[AABB_COUNT] = {
+
+    {min: {  430, - 670, -120}, max: { 670, -430, 120}},
+    {min: {-1000, -1000,  -10}, max: {1000, 1000,   0}},
 };
 
 
-Scenery cube = {
+OBB object_box[OBB_COUNT] = {
 
-    scale: { 3, 3, 0.5},
-    position: {300, 300, 25},
-    rotation: {0, 0, 30},
-
-    rotational_speed: {270, 50, 190,},
-
-    model: gfx_cube,
+    {size: {240, 240, 240}, center: {-550,  550,  120}, rotation: {  45,  35,    0}},
+    {size: {1200, 240, 240}, center: {-550, -550,  20}, rotation: {   0,  10,  115}},
+    {size: {600, 600, 600}, center: { 650,  650, -120}, rotation: {  0,  0,   35}},
+       
 };
 
 
-AABB axis_cube_bounding_box = {
-
-    min: {-100, -100, -10,},
-    max: {100, 100, 50,},
-};
-
-
-OBB cube_object_box = {
-
-    size: {300, 300, 50},
-    center: {300, 300, 25},
-    rotation: {0, 0, 30,},    
-};
-
-Sphere sphere = {
-
-    center: {0, 0, 50,},
-    radius: 50,
-
-};
-
-
-Capsule player_bounding_box = {
-
-    radius: 20,
-};
-
-
-void set_capsule(Capsule* capsule, Entity entity, float height)
+void set_capsule(Entity* entity, float height)
 {
-    capsule->start_point[0]  = entity.position[0]; 
-    capsule->start_point[1]  = entity.position[1]; 
-    capsule->start_point[2]  = entity.position[2] + capsule->radius;
-    capsule->end_point[0] = entity.position[0];
-    capsule->end_point[1] = entity.position[1];
-    capsule->end_point[2] = entity.position[2] + capsule->radius + height;
+    entity->capsule.lower_point[0]  = entity->position[0]; 
+    entity->capsule.lower_point[1]  = entity->position[1]; 
+    entity->capsule.lower_point[2]  = entity->position[2] + entity->capsule.radius;
+    entity->capsule.upper_point[0]  = entity->position[0];
+    entity->capsule.upper_point[1]  = entity->position[1];
+    entity->capsule.upper_point[2]  = entity->position[2] + entity->capsule.radius + height;
 }
+
 
 void set_sphere(Sphere* sphere, Entity entity)
 {
@@ -254,9 +258,6 @@ void set_viewport(Viewport *viewport)
     gSPMatrix(glistp++, &viewport->projection, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(glistp++, &viewport->position_mtx, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gSPPerspNormalize(glistp++, &viewport->normal);
-
-    guMtxIdent(&viewport->modeling);
-    gSPMatrix(glistp++, &viewport->modeling, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);  
 }
 
 
@@ -271,11 +272,11 @@ void set_light(LightData *light)
     for (i=0; i<3; i++) {
 
         // Ambient color
-        light->amb.l.col[i] = 140;
-        light->amb.l.colc[i] = 140;
+        light->amb.l.col[i]  = 130;
+        light->amb.l.colc[i] = 130;
 
         //directional light color
-        light->dir.l.col[i] = 255;
+        light->dir.l.col[i]  = 255;
         light->dir.l.colc[i] = 255;
     }
 
@@ -295,19 +296,26 @@ void set_light(LightData *light)
 /* set entity
 handles the system functions that enters an entity's position and rotation values */
 
-void set_entity (Entity *entity)
+void set_entity (Entity* entity)
 {
-    guPosition(
-        &entity->transform,
-        entity->pitch, entity->roll, entity->yaw,
-        entity->scale,
-        entity->position[0], entity->position[1], entity->position[2]
-    );
+    guTranslate(&entity->position_mtx, entity->position[0], entity->position[1], entity->position[2]);
+    guRotate(&entity->rotation_mtx[0], entity->pitch, 1, 0, 0);
+    guRotate(&entity->rotation_mtx[1], entity->roll, 0, 1, 0);
+    guRotate(&entity->rotation_mtx[2], entity->yaw, 0, 0, 1);
+    guScale(&entity->scale_mtx, entity->scale[0], entity->scale[1], entity->scale[2]);
 
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->transform), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->position_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->rotation_mtx[0]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->rotation_mtx[1]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->rotation_mtx[2]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&entity->scale_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
 
     sausage64_drawmodel(&glistp, &entity->model);
 
+    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
+    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
+    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
+    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
     gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
 }
 
@@ -317,33 +325,33 @@ handles the system functions that enters a scenery object's position and rotatio
 
 void set_scenery (Scenery *scenery)
 {
-
-    guPosition(
-        &scenery->transform,
-        scenery->rotation[0], scenery->rotation[1], scenery->rotation[2],
-        1,
-        scenery->position[0], scenery->position[1], scenery->position[2]
-    );
-    
+    guTranslate(&scenery->position_mtx, scenery->position[0], scenery->position[1], scenery->position[2]);
+    guRotate(&scenery->rotation_mtx[0], scenery->rotation[0], 1, 0, 0);
+    guRotate(&scenery->rotation_mtx[1], scenery->rotation[1], 0, 1, 0);
+    guRotate(&scenery->rotation_mtx[2], scenery->rotation[2], 0, 0, 1);
     guScale(&scenery->scale_mtx, scenery->scale[0], scenery->scale[1], scenery->scale[2]);
 
-    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->transform), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->position_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->rotation_mtx[0]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->rotation_mtx[1]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->rotation_mtx[2]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(glistp++, OS_K0_TO_PHYSICAL(&scenery->scale_mtx), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-
+    
     gSPDisplayList(glistp++, scenery->model);
 
     gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
     gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
+    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
+    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
+    gSPPopMatrix(glistp++, G_MTX_MODELVIEW);
 }
 
-
-void set_scene()
-{        
-    // Initialize the model matrix
+void set_shading_options()
+{
     guMtxIdent(&viewport.modeling);
-    gSPMatrix(glistp++, &viewport.modeling, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(glistp++, &viewport.modeling, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);  
 
-    // Initialize the RCP to draw stuff nicely
+        // Initialize the RCP to draw stuff nicely
     gDPSetCycleType(glistp++, G_CYC_1CYCLE);
     gDPSetDepthSource(glistp++, G_ZS_PIXEL);
     gSPClearGeometryMode(glistp++,0xFFFFFFFF);
@@ -357,15 +365,23 @@ void set_scene()
     gDPSetTextureLOD(glistp++, G_TL_TILE);
     gDPSetTextureDetail(glistp++, G_TD_CLAMP);
     gDPSetTextureLUT(glistp++, G_TT_NONE);
+}
 
+void set_scene()
+{   
+    set_shading_options();
+    
     set_entity(&player);
+    
+    set_scenery (&axis);
+    
+    for (int i = 0; i < SCENERY_COUNT; i++) {
 
-    for (int i = 0; i < AXIS_COUNT; i++) {
-
-        set_scenery(&axis_cube[i]);
+        set_scenery(&scenery[i]);
     }
 
-    set_scenery (&cube);
+    set_scenery (&ground);
+
 
       // Syncronize the RCP and CPU and specify that our display list has ended
     gDPFullSync(glistp++);
@@ -386,13 +402,16 @@ void print_debug_data()
     nuDebConPrintf(NU_DEB_CON_WINDOW0, "time  %d", (int) get_time());
     
     nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 2);
-    nuDebConPrintf(NU_DEB_CON_WINDOW0, "FPS  %d", (int) timedata.FPS);
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "framerate  %d", (int) timedata.frame_rate);
     
     nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 3);
     nuDebConPrintf(NU_DEB_CON_WINDOW0, "position: %d, %d, %d", (int)player.position[0], (int)player.position[1], (int)player.position[2]);
 
     nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 4);
-    nuDebConPrintf(NU_DEB_CON_WINDOW0, "normal: %d, %d, %d", (int)(player.collision.normal[0] * 1000), (int)(player.collision.normal[1] * 1000), (int)(player.collision.normal[2] * 1000));
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "velocity: %d, %d, %d", (int)player.velocity[0], (int)player.velocity[1], (int)player.velocity[2]);
+
+    nuDebConTextPos(NU_DEB_CON_WINDOW0, 1, 5);
+    nuDebConPrintf(NU_DEB_CON_WINDOW0, "collision normal: %d, %d, %d", (int)(player.collision.normal[0] * 1000), (int)(player.collision.normal[1] * 1000), (int)(player.collision.normal[2] * 1000));
 
     /*
     float hit_point[3];
@@ -434,22 +453,22 @@ initializes the elements of the scene that require function calling */
 
 void init_scene(void)
 {
-    // Initialize nick
-
     //init_entity(&player, 15, playerMtx, entity_animcallback);
     sausage64_initmodel(&player.model, MODEL_nick, playerMtx);
-
-    player.model.transition_tick_count = 300;
-    player.model.transition_tick_count = 300;
 
     set_entity_state(&player, STAND_IDLE);
 
     sausage64_set_animcallback(&player.model, entity_animcallback);
     
-    /*// Set nick's animation speed based on region
+    /*
+    player.model.transition_tick_count = 300;
+    player.model.transition_tick_count = 300;
+  
+    // Set nick's animation speed based on region
     #if TV_TYPE == PAL 
     #else
-    #endif */
+    #endif 
+    */
 }
 
 
@@ -468,6 +487,13 @@ void update_scene()
     nuContDataGetEx(&contdata[0], 0);
     nuContDataGetEx(&contdata[1], 1);
 
+    if (player.position[2] < -1000) init_point(player.position, 0, 0, 1000);
+
+    //move_viewport_stick(&viewport, player, &contdata[1]);
+    move_viewport_c_buttons(&viewport, &contdata[0], timedata);
+
+    set_viewport_position(&viewport, player, timedata);
+
     move_entity_stick(&player, viewport, &contdata[0]);
 
     set_entity_actions(&player, &contdata[0], timedata);
@@ -476,16 +502,11 @@ void update_scene()
 
     set_entity_state(&player, player.state);  
 
-    move_viewport_stick(&viewport, player, &contdata[1]);
-    //move_viewport_c_buttons(&viewport, &contdata[0], timedata);
+    set_capsule(&player, player.capsule.height);
 
-    set_viewport_position(&viewport, player, timedata);
+    reset_collision_data(&player);
 
-    set_capsule(&player_bounding_box, player, 20);
-    //set_sphere(&player_bounding_box, player);
-
-    set_collission_response(&player, player_bounding_box, axis_cube_bounding_box, cube_object_box);
-    //rotate_cube();
+    set_collission_response(&player, aligned_box, object_box);
 }
 
 
@@ -499,7 +520,7 @@ void render_frame(void)
 
     // Initialize the RCP and framebuffer
     rcp_init();
-    fb_clear(180, 180, 180);
+    fb_clear(154, 181, 198);
     
     set_viewport(&viewport);
 

@@ -8,21 +8,11 @@ here are all the structures and functions prototypes that involve the collision 
 // structures
 
 
-typedef struct {
-
-    float normal[3];
-    float point[3];
-    float displacement; 
-
-} Plane;
 
 typedef struct {
 
     float center[3];
     float radius;
-    
-    float closest_point[3];
-    float distance_squared;
 
 } Sphere;
 
@@ -48,17 +38,8 @@ typedef struct {
 
 typedef struct {
 
-    float start_point[3];
-    float end_point[3];
-    float radius;
-
-} Capsule;
-
-
-typedef struct {
-
-    float center[3];
     float size[3];
+    float center[3];
     float rotation[3];
 
     Plane plane;
@@ -68,6 +49,8 @@ typedef struct {
 
 // function prototypes
 
+
+void init_point(float* dest, float x, float y, float z);
 void set_point(float* dest, float* src);
 float squared_distance(float *a, float *b);
 float distance(float *a, float *b);
@@ -82,8 +65,8 @@ void project_polygon(float axis[3], float corners[8][3], float *min, float *max)
 int intervals_overlap(float minA, float maxA, float minB, float maxB);
 int test_axis(float axis[3], float obbCorners[8][3], float aabbCorners[8][3]);
 
-void point_global_to_obb_space(OBB obb, float global_point[3], float local_point[3]);
-void point_obb_to_global_space(OBB obb, float local_point[3], float global_point[3]);
+void point_global_to_obb_space(OBB* obb, float global_point[3], float local_point[3]);
+void point_obb_to_global_space(OBB* obb, float local_point[3], float global_point[3]);
 
 void get_aabb_corners(AABB aabb, float corners[8][3]);
 void get_obb_corners(OBB obb, float corners[8][3]);
@@ -91,7 +74,7 @@ void get_obb_corners(OBB obb, float corners[8][3]);
 void closest_point_on_segment_to_point(float line_start[3], float line_end[3], float point[3], float closest[3]);
 float squared_distance_point_to_segment(float point[3], float segment_start[3], float segment_end[3]);
 
-
+void reset_collision_data(Entity* entity);
 int collision_sphere_sphere(Sphere sphere1, Sphere sphere2);
 int collision_aabb_aabb(AABB aabb1, AABB aabb2);
 int collision_sphere_aabb(Entity* entity, Sphere sphere, AABB aabb);
@@ -100,8 +83,8 @@ int collision_sphere_obb(Entity* entity, Sphere sphere, OBB obb);
 int collision_obb_aabb(OBB obb, AABB aabb);
 int collision_cylinder_aabb(Entity* entity, Cylinder cylinder, AABB aabb);
 int collision_cylinder_obb(Entity* entity, Cylinder cylinder, OBB obb);
-int collision_capsule_aabb(Entity* entity, Capsule capsule, AABB aabb);
-int collision_capsule_obb(Entity* entity, Capsule capsule, OBB obb);
+int collision_capsule_aabb(Entity* entity, AABB aabb);
+int collision_capsule_obb(Entity* entity, OBB obb);
 int collision_ray_aabb(float origin[3], float target[3], AABB aabb, float* hit_point);
 
 
@@ -172,15 +155,15 @@ void rotate_point(float point[3], float rotation[3])
 /* point_global_to_obb_space
 transforms a point from global to OBB's local space using Euler angles */
 
-void point_global_to_obb_space(OBB obb, float global_point[3], float local_point[3]) 
+void point_global_to_obb_space(OBB* obb, float global_point[3], float local_point[3]) 
 {
     // Translate point by the inverse of OBB's center
-    local_point[0] = global_point[0] - obb.center[0];
-    local_point[1] = global_point[1] - obb.center[1];
-    local_point[2] = global_point[2] - obb.center[2];
+    local_point[0] = global_point[0] - obb->center[0];
+    local_point[1] = global_point[1] - obb->center[1];
+    local_point[2] = global_point[2] - obb->center[2];
 
     // Rotate the translated point by the inverse of OBB's rotation
-    float inverse_rotation[3] = {-obb.rotation[0], -obb.rotation[1], -obb.rotation[2]};
+    float inverse_rotation[3] = {-obb->rotation[0], -obb->rotation[1], -obb->rotation[2]};
     rotate_point(local_point, inverse_rotation);
 }
 
@@ -188,15 +171,15 @@ void point_global_to_obb_space(OBB obb, float global_point[3], float local_point
 /* point_obb_to_global_space
 converts a point from OBB's local space to global space using Euler angles */
 
-void point_obb_to_global_space(OBB obb, float local_point[3], float global_point[3]) 
+void point_obb_to_global_space(OBB* obb, float local_point[3], float global_point[3]) 
 {
     // Apply rotation to the local point to get it in the global space orientation
-    rotate_point(local_point, obb.rotation);
+    rotate_point(local_point, obb->rotation);
 
     // Translate the rotated point by adding the OBB's center
-    global_point[0] = local_point[0] + obb.center[0];
-    global_point[1] = local_point[1] + obb.center[1];
-    global_point[2] = local_point[2] + obb.center[2];
+    global_point[0] = local_point[0] + obb->center[0];
+    global_point[1] = local_point[1] + obb->center[1];
+    global_point[2] = local_point[2] + obb->center[2];
 }
 
 
@@ -401,6 +384,14 @@ void init_plane(Plane *plane, float normal[3], float point[3])
 }
 
 
+
+void reset_collision_data(Entity* entity)
+{
+    null_vector(entity->collision.normal);
+    null_vector(entity->collision.point);
+}
+
+
 /* collision_sphere_sphere
 detects collision between 2 shperes */
 
@@ -462,19 +453,19 @@ detects collision between a capsule and a sphere */
 int collision_capsule_sphere(Capsule capsule, Sphere sphere) 
 {
     float capsule_vector[3];
-    set_vector(capsule_vector, capsule.start_point, capsule.end_point);
+    set_vector(capsule_vector, capsule.lower_point, capsule.upper_point);
     
     float sphere_to_start[3];
-    set_vector(sphere_to_start, sphere.center, capsule.start_point);
+    set_vector(sphere_to_start, sphere.center, capsule.lower_point);
 
     float dot = dot_product(sphere_to_start, capsule_vector);
-    float length_squared = squared_distance(capsule.start_point, capsule.end_point);
+    float length_squared = squared_distance(capsule.lower_point, capsule.upper_point);
 
     float t = clamp(dot / length_squared, 0.0f, 1.0f);
     float closest_point[3] = {
-        capsule.start_point[0] + t * capsule_vector[0],
-        capsule.start_point[1] + t * capsule_vector[1],
-        capsule.start_point[2] + t * capsule_vector[2]
+        capsule.lower_point[0] + t * capsule_vector[0],
+        capsule.lower_point[1] + t * capsule_vector[1],
+        capsule.lower_point[2] + t * capsule_vector[2]
     };
 
     float distance_squared = squared_distance(sphere.center, closest_point);
@@ -489,7 +480,7 @@ detects collision between an OBB and a sphere */
 int collision_sphere_obb(Entity* entity, Sphere sphere, OBB obb) 
 {
     float local_sphere_center[3];
-    point_global_to_obb_space(obb, sphere.center, local_sphere_center);
+    point_global_to_obb_space(&obb, sphere.center, local_sphere_center);
 
     // Find the closest point on the OBB to the sphere's center in OBB's local space
     float closest_point[3] = {
@@ -505,7 +496,7 @@ int collision_sphere_obb(Entity* entity, Sphere sphere, OBB obb)
     if (distance_squared <= sphere.radius * sphere.radius) {
         // Convert the closest point back to global space before assigning it
         float global_closest_point[3];
-        point_obb_to_global_space(obb, closest_point, global_closest_point);
+        point_obb_to_global_space(&obb, closest_point, global_closest_point);
         
         // Assign the global closest point to the entity's collision point
         set_point(entity->collision.point, global_closest_point);
@@ -593,7 +584,7 @@ int collision_cylinder_obb(Entity* entity, Cylinder cylinder, OBB obb)
 {
     // Transform cylinder base center to OBB local space
     float local_base_center[3];
-    point_global_to_obb_space(obb, cylinder.base_center, local_base_center);
+    point_global_to_obb_space(&obb, cylinder.base_center, local_base_center);
 
     // Calculate the closest point in OBB local space
     float closest_point[3] = {
@@ -613,9 +604,9 @@ int collision_cylinder_obb(Entity* entity, Cylinder cylinder, OBB obb)
         return 0;  // No vertical collision
 
     // Convert the closest point back to global space
-    float closest_point_global[3];
-    point_obb_to_global_space(obb, closest_point, closest_point_global);
-    set_point(entity->collision.point, closest_point_global);
+    float global_closest_point[3];
+    point_obb_to_global_space(&obb, closest_point, global_closest_point);
+    set_point(entity->collision.point, global_closest_point);
 
     return 1; // Collision detected
 }
@@ -624,42 +615,44 @@ int collision_cylinder_obb(Entity* entity, Cylinder cylinder, OBB obb)
 /* collision_capsule_aabb
 Detects collision between a capsule and an AABB */
 
-int collision_capsule_aabb(Entity* entity, Capsule capsule, AABB aabb)
+
+int collision_capsule_aabb(Entity* entity, AABB aabb)
 {
     // Check collision with spheres at the ends of the capsule
-    Sphere lower_sphere = {.center = {capsule.start_point[0], capsule.start_point[1], capsule.start_point[2]}, .radius = capsule.radius};
-    Sphere upper_sphere = {.center = {capsule.end_point[0], capsule.end_point[1], capsule.end_point[2]}, .radius = capsule.radius};
+    Sphere lower_sphere = {.center = {entity->capsule.lower_point[0], entity->capsule.lower_point[1], entity->capsule.lower_point[2]}, .radius = entity->capsule.radius};
+    Sphere upper_sphere = {.center = {entity->capsule.upper_point[0], entity->capsule.upper_point[1], entity->capsule.upper_point[2]}, .radius = entity->capsule.radius};
 
     if (collision_sphere_aabb(entity, lower_sphere, aabb) || collision_sphere_aabb(entity, upper_sphere, aabb))
         return 1;  // Collision with one of the end spheres
 
     // Check collision with the cylindrical body
     Cylinder cylinder = {
-        .base_center = {capsule.start_point[0], capsule.start_point[1], capsule.start_point[2]},
-        .height = length(capsule.end_point) - length(capsule.start_point),
-        .radius = capsule.radius
+        .base_center = {entity->capsule.lower_point[0], entity->capsule.lower_point[1], entity->capsule.lower_point[2]},
+        .height = length(entity->capsule.upper_point) - length(entity->capsule.lower_point),
+        .radius = entity->capsule.radius
     };
 
     return collision_cylinder_aabb(entity, cylinder, aabb);
 }
 
+
 /* collision_capsule_obb
 Detects collision between a capsule and an OBB */
 
-int collision_capsule_obb(Entity* entity, Capsule capsule, OBB obb)
+int collision_capsule_obb(Entity* entity, OBB obb)
 {
     // Check collision with spheres at the ends of the capsule
-    Sphere lower_sphere = {.center = {capsule.start_point[0], capsule.start_point[1], capsule.start_point[2]}, .radius = capsule.radius};
-    Sphere upper_sphere = {.center = {capsule.end_point[0], capsule.end_point[1], capsule.end_point[2]}, .radius = capsule.radius};
+    Sphere lower_sphere = {.center = {entity->capsule.lower_point[0], entity->capsule.lower_point[1], entity->capsule.lower_point[2]}, .radius = entity->capsule.radius};
+    Sphere upper_sphere = {.center = {entity->capsule.upper_point[0], entity->capsule.upper_point[1], entity->capsule.upper_point[2]}, .radius = entity->capsule.radius};
 
     if (collision_sphere_obb(entity, lower_sphere, obb) || collision_sphere_obb(entity, upper_sphere, obb))
         return 1;  // Collision with one of the end spheres
 
     // Check collision with the cylindrical body
     Cylinder cylinder = {
-        .base_center = {capsule.start_point[0], capsule.start_point[1], capsule.start_point[2]},
-        .height = length(capsule.end_point) - length(capsule.start_point),
-        .radius = capsule.radius
+        .base_center = {entity->capsule.lower_point[0], entity->capsule.lower_point[1], entity->capsule.lower_point[2]},
+        .height = length(entity->capsule.upper_point) - length(entity->capsule.lower_point),
+        .radius = entity->capsule.radius
     };
 
     return collision_cylinder_obb(entity, cylinder, obb);

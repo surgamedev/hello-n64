@@ -108,15 +108,24 @@ calculates the viewport position given the input controlled variables*/
 
 void set_viewport_position(Viewport *viewport, Entity entity, TimeData timedata)
 {
-	viewport->rotational_speed[0] += viewport->rotational_acceleration[0] * timedata.frame_duration;
-    viewport->rotational_speed[1] += viewport->rotational_acceleration[1] * timedata.frame_duration;
-	viewport->zoom_speed += viewport->zoom_acceleration * timedata.frame_duration;
-	viewport->offset_speed += viewport->offset_acceleration * timedata.frame_duration;
+	viewport->rotational_speed[0] += viewport->rotational_acceleration[0] * timedata.frame_time;
+    viewport->rotational_speed[1] += viewport->rotational_acceleration[1] * timedata.frame_time;
+	viewport->zoom_speed += viewport->zoom_acceleration * timedata.frame_time;
+	viewport->offset_speed += viewport->offset_acceleration * timedata.frame_time;
 
-	viewport->angle_around_entity += (viewport->rotational_speed[0] * timedata.frame_duration);
-    viewport->pitch += (viewport->rotational_speed[1] * timedata.frame_duration);
-	viewport->distance_from_entity += (viewport->zoom_direction * viewport->zoom_speed * timedata.frame_duration);
-	viewport->offset_angle += (viewport->offset_direction * viewport->offset_speed * timedata.frame_duration);
+	if (fabs(viewport->rotational_speed[0]) < 0.1f && fabs(viewport->rotational_speed[1]) < 0.1f && fabs(viewport->zoom_speed) < 0.1f && fabs(viewport->offset_speed) < 0.1f){
+
+		viewport->rotational_speed[0] = 0;
+		viewport->rotational_speed[1] = 0;
+		viewport->zoom_speed = 0;
+		viewport->offset_speed = 0;
+
+	}
+
+	viewport->angle_around_entity += (viewport->rotational_speed[0] * timedata.frame_time);
+    viewport->pitch += (viewport->rotational_speed[1] * timedata.frame_time);
+	viewport->distance_from_entity += (viewport->zoom_direction * viewport->zoom_speed * timedata.frame_time);
+	viewport->offset_angle += (viewport->offset_direction * viewport->offset_speed * timedata.frame_time);
 
 	if (viewport->angle_around_entity > 360) viewport->angle_around_entity -= 360;
     if (viewport->angle_around_entity < 0) viewport->angle_around_entity  += 360;
@@ -136,7 +145,7 @@ void set_viewport_position(Viewport *viewport, Entity entity, TimeData timedata)
 	
     /* this makes the camera collide with an horizontal plane at height 0 simulating the floor,
     will be modyfied when camera collision happens */
-	while (viewport->position[2] < 0)  {
+	while (viewport->position[2] < entity.grounding_height + 5)  {
 
 		viewport->distance_from_entity--; 
 		viewport->horizontal_distance_from_entity = viewport->distance_from_entity * cosf(rad(viewport->pitch));

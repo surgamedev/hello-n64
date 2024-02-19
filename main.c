@@ -54,6 +54,7 @@ void mainproc(void)
     nuGfxFuncSet((NUGfxFunc)callback_vsync);
     
     // Turn on the screen and loop forever to keep the idle thread busy
+
     nuGfxDisplayOn();
     while(1)
         ;

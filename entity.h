@@ -13,8 +13,10 @@ typedef enum {
     STAND_IDLE,
     WALKING,
     RUNNING,
+	SPRINTING,
 	ROLL,
 	JUMP,
+	FALL,
 
 } EntityState;
 
@@ -37,9 +39,12 @@ typedef struct {
 
 	float walk_target_speed;
 	float run_target_speed;
+	float sprint_target_speed;
 	float idle_to_roll_target_speed;
+	float idle_to_roll_grip_target_speed;
 	float walk_to_roll_target_speed;
 	float run_to_roll_target_speed;
+	float sprint_to_roll_target_speed;
 	float jump_target_speed;
 	
 	u32 idle_to_roll_change_grip_tick;
@@ -60,29 +65,55 @@ typedef struct {
 	float time_held;
 	int hold;
 	int released;
-	int invalid_input;
 
 }Entityinput;
+
+
+typedef struct {
+
+	float previous_position[3];
+	float position[3];
+
+    float lower_point[3];
+    float upper_point[3];
+    float radius;
+	float height;
+
+} Capsule;
+
+
+typedef struct {
+
+    float normal[3];
+    float point[3];
+    float displacement; 
+
+} Plane;
+
 
 typedef struct {
 
 	float point[3];
 	float normal[3];
+	Plane plane;
 
 }EntityCollision; 
 
 
 typedef struct {
 
-	Mtx	transform;
+	Mtx	position_mtx;
+	Mtx	rotation_mtx[3];
+	Mtx scale_mtx;
 
 	EntityState previous_state;
 	EntityState state;
 
 	Foot grounded_foot;
 	int grounded;
+	float grounding_height;
 	
-	float scale;
+	float scale[3];
 	float previous_position[3];
 	float position[3];
 	
@@ -92,15 +123,18 @@ typedef struct {
     float yaw;
     
 	float acceleration[3];
-	float target_speed[3];
-	float speed[3];
+	float target_velocity[3];
+	float velocity[3];
 	float directional_speed;
 
-    float framerate;
-	s64ModelHelper model;
 	EntitySettings settings;
 	Entityinput input;
+
+	Capsule capsule;
 	EntityCollision collision;
+
+	float framerate;
+	s64ModelHelper model;
 
 	Mtx model_mtx[];
 
@@ -127,7 +161,7 @@ void init_entity(Entity *entity, int idle, Mtx *entityMtx, void (*animcallback)(
 
 
 /* set_entity_position
-calculates the entity position given the speed and the available frame duration*/
+calculates the entity position given the velocity and the available frame duration*/
 
 void set_entity_position(Entity *entity, TimeData time_data)
 {	
@@ -135,25 +169,33 @@ void set_entity_position(Entity *entity, TimeData time_data)
 	entity->previous_position[0] = entity->position[0];
 	entity->previous_position[1] = entity->position[1];
 	entity->previous_position[2] = entity->position[2];
-	
-    entity->speed[0] += (entity->acceleration[0] * time_data.frame_duration);
-    entity->speed[1] += (entity->acceleration[1] * time_data.frame_duration);
-    entity->speed[2] += (entity->acceleration[2] * time_data.frame_duration);
 
-    if (entity->speed[0] != 0 || entity->speed[1] != 0) {
+	entity->capsule.previous_position[0] = entity->position[0];
+	entity->capsule.previous_position[1] = entity->position[1];
+	entity->capsule.previous_position[2] = entity->position[2] + entity->capsule.radius;
+	
+    entity->velocity[0] += (entity->acceleration[0] * time_data.frame_time);
+    entity->velocity[1] += (entity->acceleration[1] * time_data.frame_time);
+    entity->velocity[2] += (entity->acceleration[2] * time_data.frame_time);
+
+    if (entity->velocity[0] != 0 || entity->velocity[1] != 0) {
 		
-		entity->yaw = deg(atan2(entity->speed[0], -entity->speed[1]));
-		entity->directional_speed = calculate_diagonal(entity->speed[0], entity->speed[1]);
+		entity->yaw = deg(atan2(entity->velocity[0], -entity->velocity[1]));
+		entity->directional_speed = calculate_diagonal(entity->velocity[0], entity->velocity[1]);
 	}
 
-	if (fabs(entity->speed[0]) < 1 && fabs(entity->speed[1]) < 1){
-		entity->speed[0] = 0;
-		entity->speed[1] = 0;
+	if (fabs(entity->velocity[0]) < 1 && fabs(entity->velocity[1]) < 1){
+		entity->velocity[0] = 0;
+		entity->velocity[1] = 0;
 	}
 	
-    entity->position[0] += entity->speed[0] * time_data.frame_duration;
-    entity->position[1] += entity->speed[1] * time_data.frame_duration;
-    entity->position[2] += entity->speed[2] * time_data.frame_duration;
+    entity->position[0] += entity->velocity[0] * time_data.frame_time;
+    entity->position[1] += entity->velocity[1] * time_data.frame_time;
+    entity->position[2] += entity->velocity[2] * time_data.frame_time;
+
+	entity->capsule.position[0] = entity->position[0];
+	entity->capsule.position[1] = entity->position[1];
+	entity->capsule.position[2] = entity->position[2] + entity->capsule.radius;
 
 }
 
